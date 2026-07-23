@@ -1,0 +1,6 @@
+{
+  "name": "Study Tracker",
+  "description": "Comprehensive study tracker app with Pomodoro timer, subject daily goals, task checklist, progress charts, user profile, and dark mode.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
