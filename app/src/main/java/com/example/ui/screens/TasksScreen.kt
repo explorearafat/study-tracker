@@ -18,6 +18,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import android.view.HapticFeedbackConstants
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
@@ -41,6 +45,19 @@ fun TasksScreen(
 ) {
     var showAddDialog by remember { mutableStateOf(false) }
     var selectedFilterIndex by remember { mutableIntStateOf(0) } // 0: All, 1: Pending, 2: Completed
+
+    val haptic = LocalHapticFeedback.current
+    val view = LocalView.current
+
+    val handleToggleTaskCompleted: (Task) -> Unit = { task ->
+        if (!task.isCompleted) {
+            view.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
+            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+        } else {
+            view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+        }
+        onToggleTaskCompleted(task)
+    }
 
     val filteredTasks = remember(tasks, selectedFilterIndex) {
         when (selectedFilterIndex) {
@@ -186,7 +203,7 @@ fun TasksScreen(
                         ) {
                             Checkbox(
                                 checked = task.isCompleted,
-                                onCheckedChange = { onToggleTaskCompleted(task) }
+                                onCheckedChange = { handleToggleTaskCompleted(task) }
                             )
 
                             Spacer(modifier = Modifier.width(8.dp))
@@ -217,7 +234,7 @@ fun TasksScreen(
 
                             // "Details" Blue Pill Button from Reference UI
                             Button(
-                                onClick = { onToggleTaskCompleted(task) },
+                                onClick = { handleToggleTaskCompleted(task) },
                                 shape = CircleShape,
                                 colors = ButtonDefaults.buttonColors(
                                     containerColor = Color(0xFF3B82F6),

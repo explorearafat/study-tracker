@@ -11,6 +11,7 @@ import com.example.data.model.Subject
 import com.example.data.model.Task
 import com.example.data.model.UserProfile
 import com.example.data.repository.StudyRepository
+import com.example.notifications.NotificationHelper
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
@@ -221,6 +222,83 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             val current = userProfile.value ?: UserProfile()
             repository.saveUserProfile(current.copy(isDarkMode = !current.isDarkMode))
+        }
+    }
+
+    fun updateReminderSettings(enabled: Boolean, hour: Int, minute: Int) {
+        viewModelScope.launch {
+            val current = userProfile.value ?: UserProfile()
+            val updated = current.copy(
+                reminderEnabled = enabled,
+                reminderHour = hour,
+                reminderMinute = minute
+            )
+            repository.saveUserProfile(updated)
+
+            val context = getApplication<Application>().applicationContext
+            if (enabled) {
+                NotificationHelper.scheduleDailyReminder(context, hour, minute)
+            } else {
+                NotificationHelper.cancelReminder(context)
+            }
+        }
+    }
+
+    fun completeOnboarding(
+        name: String,
+        academicLevel: String,
+        motto: String,
+        targetDailyHours: Float,
+        avatarUri: String,
+        initialTasks: List<Triple<String, Int, String>>, // (title, subjectId, priority)
+        reminderEnabled: Boolean,
+        reminderHour: Int,
+        reminderMinute: Int
+    ) {
+        viewModelScope.launch {
+            val current = userProfile.value ?: UserProfile()
+            val updatedProfile = current.copy(
+                name = name,
+                academicLevel = academicLevel,
+                motto = motto,
+                targetDailyHours = targetDailyHours,
+                avatarUri = avatarUri,
+                reminderEnabled = reminderEnabled,
+                reminderHour = reminderHour,
+                reminderMinute = reminderMinute,
+                isOnboardingCompleted = true
+            )
+            repository.saveUserProfile(updatedProfile)
+
+            // Insert initial setup tasks
+            initialTasks.forEach { (title, subjectId, priority) ->
+                if (title.isNotBlank()) {
+                    repository.insertTask(
+                        Task(
+                            subjectId = subjectId,
+                            title = title.trim(),
+                            description = "Initial task set during setup.",
+                            priority = priority,
+                            dueDateEpochMs = System.currentTimeMillis() + 86400000L // Tomorrow
+                        )
+                    )
+                }
+            }
+
+            // Schedule reminder if enabled
+            val context = getApplication<Application>().applicationContext
+            if (reminderEnabled) {
+                NotificationHelper.scheduleDailyReminder(context, reminderHour, reminderMinute)
+            } else {
+                NotificationHelper.cancelReminder(context)
+            }
+        }
+    }
+
+    fun resetOnboarding() {
+        viewModelScope.launch {
+            val current = userProfile.value ?: UserProfile()
+            repository.saveUserProfile(current.copy(isOnboardingCompleted = false))
         }
     }
 

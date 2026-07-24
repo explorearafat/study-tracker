@@ -16,23 +16,23 @@ import retrofit2.http.Query
 import java.util.concurrent.TimeUnit
 
 data class GeminiPart(
-    @Json(name = "text") val text: String
+    @field:Json(name = "text") val text: String
 )
 
 data class GeminiContent(
-    @Json(name = "parts") val parts: List<GeminiPart>
+    @field:Json(name = "parts") val parts: List<GeminiPart>
 )
 
 data class GeminiCandidate(
-    @Json(name = "content") val content: GeminiContent?
+    @field:Json(name = "content") val content: GeminiContent?
 )
 
 data class GeminiResponse(
-    @Json(name = "candidates") val candidates: List<GeminiCandidate>?
+    @field:Json(name = "candidates") val candidates: List<GeminiCandidate>?
 )
 
 data class GeminiRequest(
-    @Json(name = "contents") val contents: List<GeminiContent>
+    @field:Json(name = "contents") val contents: List<GeminiContent>
 )
 
 data class MotivationalQuote(

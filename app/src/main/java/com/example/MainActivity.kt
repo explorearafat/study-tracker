@@ -19,6 +19,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
+import androidx.compose.material.icons.automirrored.filled.MenuBook
+import androidx.compose.material.icons.automirrored.outlined.MenuBook
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -45,7 +47,7 @@ enum class Screen(
 ) {
     Dashboard("dashboard", "Overview", Icons.Filled.GridView, Icons.Outlined.GridView),
     Timer("timer", "Timer", Icons.Filled.Timer, Icons.Outlined.Timer),
-    Subjects("subjects", "Subjects", Icons.Filled.MenuBook, Icons.Outlined.MenuBook),
+    Subjects("subjects", "Subjects", Icons.AutoMirrored.Filled.MenuBook, Icons.AutoMirrored.Outlined.MenuBook),
     Tasks("tasks", "Tasks", Icons.Filled.TaskAlt, Icons.Outlined.TaskAlt),
     Analytics("analytics", "Analytics", Icons.Filled.BarChart, Icons.Outlined.BarChart),
     Profile("profile", "Profile", Icons.Filled.Person, Icons.Outlined.Person)
@@ -75,11 +77,24 @@ fun StudyTrackerApp(viewModel: MainViewModel = viewModel()) {
     val isDarkMode = userProfile?.isDarkMode ?: false
 
     StudyTrackerTheme(darkTheme = isDarkMode) {
-        val navController = rememberNavController()
-        val navBackStackEntry by navController.currentBackStackEntryAsState()
-        val currentRoute = navBackStackEntry?.destination?.route ?: Screen.Dashboard.route
+        val showOnboarding = userProfile != null && !userProfile!!.isOnboardingCompleted
 
-        Scaffold(
+        if (showOnboarding) {
+            OnboardingScreen(
+                userProfile = userProfile,
+                subjects = subjects,
+                onCompleteOnboarding = { name, academicLevel, motto, targetDailyHours, avatarUri, initialTasks, reminderEnabled, reminderHour, reminderMinute ->
+                    viewModel.completeOnboarding(
+                        name, academicLevel, motto, targetDailyHours, avatarUri, initialTasks, reminderEnabled, reminderHour, reminderMinute
+                    )
+                }
+            )
+        } else {
+            val navController = rememberNavController()
+            val navBackStackEntry by navController.currentBackStackEntryAsState()
+            val currentRoute = navBackStackEntry?.destination?.route ?: Screen.Dashboard.route
+
+            Scaffold(
             topBar = {
                 CenterAlignedTopAppBar(
                     title = {
@@ -254,7 +269,8 @@ fun StudyTrackerApp(viewModel: MainViewModel = viewModel()) {
                 composable(Screen.Analytics.route) {
                     AnalyticsScreen(
                         sessions = sessions,
-                        subjects = subjects
+                        subjects = subjects,
+                        userProfile = userProfile
                     )
                 }
 
@@ -269,10 +285,17 @@ fun StudyTrackerApp(viewModel: MainViewModel = viewModel()) {
                                 name, level, motto, targetHours, avatarUri, wMins, bMins, lbMins
                             )
                         },
+                        onUpdateReminderSettings = { enabled, hour, minute ->
+                            viewModel.updateReminderSettings(enabled, hour, minute)
+                        },
+                        onResetOnboarding = {
+                            viewModel.resetOnboarding()
+                        },
                         onToggleDarkMode = { viewModel.toggleDarkMode() }
                     )
                 }
             }
         }
+    }
     }
 }

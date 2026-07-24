@@ -15,5 +15,9 @@ data class UserProfile(
     val isDarkMode: Boolean = false,
     val pomodoroWorkMinutes: Int = 25,
     val pomodoroBreakMinutes: Int = 5,
-    val pomodoroLongBreakMinutes: Int = 15
+    val pomodoroLongBreakMinutes: Int = 15,
+    val reminderEnabled: Boolean = false,
+    val reminderHour: Int = 20,
+    val reminderMinute: Int = 0,
+    val isOnboardingCompleted: Boolean = false
 )

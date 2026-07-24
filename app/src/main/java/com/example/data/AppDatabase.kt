@@ -19,7 +19,7 @@ import kotlinx.coroutines.launch
 
 @Database(
     entities = [Subject::class, StudySession::class, Task::class, UserProfile::class],
-    version = 1,
+    version = 2,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -39,6 +39,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "study_tracker_db"
                 )
+                    .fallbackToDestructiveMigration(dropAllTables = true)
                     .addCallback(AppDatabaseCallback())
                     .build()
                 INSTANCE = instance

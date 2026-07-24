@@ -1,8 +1,16 @@
 package com.example.ui.screens
 
+import android.app.TimePickerDialog
+import android.content.pm.PackageManager
+import android.net.Uri
+import android.os.Build
+import android.view.HapticFeedbackConstants
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -19,14 +27,23 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
+import coil.compose.AsyncImage
 import com.example.data.model.StudySession
 import com.example.data.model.Subject
 import com.example.data.model.Task
 import com.example.data.model.UserProfile
+import com.example.notifications.NotificationHelper
 import java.util.*
 
 data class AchievementBadge(
@@ -39,6 +56,109 @@ data class AchievementBadge(
     val badgeColor: Color
 )
 
+@Composable
+fun UserProfileAvatar(
+    avatarUri: String,
+    name: String,
+    size: Dp = 64.dp,
+    onClick: (() -> Unit)? = null,
+    showEditBadge: Boolean = false
+) {
+    val haptic = LocalHapticFeedback.current
+    val view = LocalView.current
+
+    Box(
+        modifier = Modifier
+            .size(size)
+            .clip(CircleShape)
+            .then(
+                if (onClick != null) {
+                    Modifier.clickable {
+                        view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                        onClick()
+                    }
+                } else Modifier
+            ),
+        contentAlignment = Alignment.Center
+    ) {
+        when {
+            avatarUri.startsWith("preset:") -> {
+                val presetName = avatarUri.removePrefix("preset:")
+                val (bgColor, icon) = when (presetName) {
+                    "scholar" -> Color(0xFF4F46E5) to Icons.Default.School
+                    "science" -> Color(0xFFEC4899) to Icons.Default.Science
+                    "tech" -> Color(0xFF10B981) to Icons.Default.Computer
+                    "art" -> Color(0xFFF59E0B) to Icons.Default.Palette
+                    "nature" -> Color(0xFF06B6D4) to Icons.Default.Spa
+                    else -> Color(0xFF8B5CF6) to Icons.Default.Star
+                }
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(bgColor),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = "Avatar Preset",
+                        tint = Color.White,
+                        modifier = Modifier.size(size * 0.5f)
+                    )
+                }
+            }
+            avatarUri.isNotEmpty() -> {
+                AsyncImage(
+                    model = avatarUri,
+                    contentDescription = "Profile Picture",
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize()
+                )
+            }
+            else -> {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(
+                            Brush.linearGradient(
+                                colors = listOf(
+                                    Color(0xFF4F46E5),
+                                    Color(0xFFEC4899)
+                                )
+                            )
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = (name.take(1)).uppercase(),
+                        style = if (size > 60.dp) MaterialTheme.typography.headlineMedium else MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White
+                    )
+                }
+            }
+        }
+
+        if (showEditBadge) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .size(size * 0.32f)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.primary)
+                    .padding(2.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.PhotoCamera,
+                    contentDescription = "Edit Profile Picture",
+                    tint = Color.White,
+                    modifier = Modifier.fillMaxSize(0.7f)
+                )
+            }
+        }
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileScreen(
@@ -47,21 +167,77 @@ fun ProfileScreen(
     tasks: List<Task> = emptyList(),
     subjects: List<Subject> = emptyList(),
     onUpdateProfile: (name: String, academicLevel: String, motto: String, targetDailyHours: Float, avatarUri: String, workMins: Int, breakMins: Int, longBreakMins: Int) -> Unit,
+    onUpdateReminderSettings: (enabled: Boolean, hour: Int, minute: Int) -> Unit = { _, _, _ -> },
+    onResetOnboarding: () -> Unit = {},
     onToggleDarkMode: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val scrollState = rememberScrollState()
+    val haptic = LocalHapticFeedback.current
+    val view = LocalView.current
+    val context = LocalContext.current
 
     var name by remember(userProfile) { mutableStateOf(userProfile?.name ?: "Alex Scholar") }
     var academicLevel by remember(userProfile) { mutableStateOf(userProfile?.academicLevel ?: "Computer Science Student") }
     var motto by remember(userProfile) { mutableStateOf(userProfile?.motto ?: "Building consistent habits every single day.") }
+    var avatarUri by remember(userProfile) { mutableStateOf(userProfile?.avatarUri ?: "") }
     var targetDailyHours by remember(userProfile) { mutableFloatStateOf(userProfile?.targetDailyHours ?: 3.0f) }
 
     var workMinsText by remember(userProfile) { mutableStateOf((userProfile?.pomodoroWorkMinutes ?: 25).toString()) }
     var breakMinsText by remember(userProfile) { mutableStateOf((userProfile?.pomodoroBreakMinutes ?: 5).toString()) }
     var longBreakMinsText by remember(userProfile) { mutableStateOf((userProfile?.pomodoroLongBreakMinutes ?: 15).toString()) }
 
+    var reminderEnabled by remember(userProfile) { mutableStateOf(userProfile?.reminderEnabled ?: false) }
+    var reminderHour by remember(userProfile) { mutableIntStateOf(userProfile?.reminderHour ?: 20) }
+    var reminderMinute by remember(userProfile) { mutableIntStateOf(userProfile?.reminderMinute ?: 0) }
+
     var savedFeedback by remember { mutableStateOf(false) }
+    var showAvatarBottomSheet by remember { mutableStateOf(false) }
+
+    val notificationPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            reminderEnabled = true
+            onUpdateReminderSettings(true, reminderHour, reminderMinute)
+            view.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
+        } else {
+            reminderEnabled = false
+            onUpdateReminderSettings(false, reminderHour, reminderMinute)
+        }
+    }
+
+    val timePickerDialog = TimePickerDialog(
+        context,
+        { _, hourOfDay, minute ->
+            reminderHour = hourOfDay
+            reminderMinute = minute
+            if (reminderEnabled) {
+                onUpdateReminderSettings(true, hourOfDay, minute)
+            }
+            view.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
+        },
+        reminderHour,
+        reminderMinute,
+        false
+    )
+
+    val imagePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        uri?.let {
+            avatarUri = it.toString()
+            view.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
+            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+            onUpdateProfile(
+                name, academicLevel, motto, targetDailyHours, it.toString(),
+                workMinsText.toIntOrNull() ?: 25,
+                breakMinsText.toIntOrNull() ?: 5,
+                longBreakMinsText.toIntOrNull() ?: 15
+            )
+            savedFeedback = true
+        }
+    }
 
     // Analytics calculations
     val totalSeconds = remember(sessions) { sessions.sumOf { it.durationSeconds } }
@@ -186,27 +362,13 @@ fun ProfileScreen(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                Box(
-                    modifier = Modifier
-                        .size(64.dp)
-                        .clip(CircleShape)
-                        .background(
-                            Brush.linearGradient(
-                                colors = listOf(
-                                    Color(0xFF4F46E5),
-                                    Color(0xFFEC4899)
-                                )
-                            )
-                        ),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = (name.take(1)).uppercase(),
-                        style = MaterialTheme.typography.headlineMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White
-                    )
-                }
+                UserProfileAvatar(
+                    avatarUri = avatarUri,
+                    name = name,
+                    size = 68.dp,
+                    onClick = { showAvatarBottomSheet = true },
+                    showEditBadge = true
+                )
 
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
@@ -589,12 +751,24 @@ fun ProfileScreen(
                 modifier = Modifier.padding(20.dp),
                 verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {
-                Text(
-                    text = "Personal Study Info",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Personal Study Info",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+
+                    TextButton(onClick = { showAvatarBottomSheet = true }) {
+                        Icon(imageVector = Icons.Default.AddAPhoto, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text("Change Photo", fontWeight = FontWeight.Bold)
+                    }
+                }
 
                 OutlinedTextField(
                     value = name,
@@ -677,6 +851,151 @@ fun ProfileScreen(
             }
         }
 
+        // Daily Study Reminders
+        Card(
+            shape = RoundedCornerShape(28.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(
+                modifier = Modifier.padding(20.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Surface(
+                            shape = CircleShape,
+                            color = MaterialTheme.colorScheme.primaryContainer,
+                            modifier = Modifier.size(40.dp)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    imageVector = Icons.Default.NotificationsActive,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                        }
+
+                        Column {
+                            Text(
+                                text = "Daily Study Reminders",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Text(
+                                text = "Stay consistent with daily goals",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+
+                    Switch(
+                        checked = reminderEnabled,
+                        onCheckedChange = { isChecked ->
+                            view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                            if (isChecked) {
+                                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                                    val hasPermission = ContextCompat.checkSelfPermission(
+                                        context,
+                                        android.Manifest.permission.POST_NOTIFICATIONS
+                                    ) == PackageManager.PERMISSION_GRANTED
+
+                                    if (hasPermission) {
+                                        reminderEnabled = true
+                                        onUpdateReminderSettings(true, reminderHour, reminderMinute)
+                                    } else {
+                                        notificationPermissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+                                    }
+                                } else {
+                                    reminderEnabled = true
+                                    onUpdateReminderSettings(true, reminderHour, reminderMinute)
+                                }
+                            } else {
+                                reminderEnabled = false
+                                onUpdateReminderSettings(false, reminderHour, reminderMinute)
+                            }
+                        },
+                        modifier = Modifier.testTag("reminder_switch")
+                    )
+                }
+
+                AnimatedVisibility(visible = reminderEnabled) {
+                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
+
+                        val formattedTime = remember(reminderHour, reminderMinute) {
+                            val h = if (reminderHour % 12 == 0) 12 else reminderHour % 12
+                            val amPm = if (reminderHour >= 12) "PM" else "AM"
+                            String.format("%02d:%02d %s", h, reminderMinute, amPm)
+                        }
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column {
+                                Text(
+                                    text = "Scheduled Reminder Time",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Text(
+                                    text = formattedTime,
+                                    style = MaterialTheme.typography.titleLarge,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            }
+
+                            OutlinedButton(
+                                onClick = {
+                                    view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                                    timePickerDialog.show()
+                                },
+                                shape = RoundedCornerShape(14.dp)
+                            ) {
+                                Icon(imageVector = Icons.Default.AccessTime, contentDescription = null, modifier = Modifier.size(18.dp))
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text("Set Time")
+                            }
+                        }
+
+                        FilledTonalButton(
+                            onClick = {
+                                view.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
+                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                NotificationHelper.showStudyNotification(
+                                    context,
+                                    "Daily Study Reminder 📚",
+                                    "It's time for your daily study session! Keep building consistent habits."
+                                )
+                            },
+                            shape = RoundedCornerShape(16.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Icon(imageVector = Icons.Default.Notifications, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Send Test Notification Now", fontWeight = FontWeight.SemiBold)
+                        }
+                    }
+                }
+            }
+        }
+
         // Save Profile Button
         Button(
             onClick = {
@@ -685,7 +1004,7 @@ fun ProfileScreen(
                 val lbMins = longBreakMinsText.toIntOrNull() ?: 15
 
                 onUpdateProfile(
-                    name, academicLevel, motto, targetDailyHours, "", wMins, bMins, lbMins
+                    name, academicLevel, motto, targetDailyHours, avatarUri, wMins, bMins, lbMins
                 )
                 savedFeedback = true
             },
@@ -698,6 +1017,22 @@ fun ProfileScreen(
             Icon(imageVector = Icons.Default.Save, contentDescription = "Save")
             Spacer(modifier = Modifier.width(8.dp))
             Text("Save Profile & Goal Settings", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+        }
+
+        // Re-run Initial Setup Wizard Button
+        OutlinedButton(
+            onClick = {
+                view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                onResetOnboarding()
+            },
+            shape = RoundedCornerShape(20.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(50.dp)
+        ) {
+            Icon(imageVector = Icons.Default.RestartAlt, contentDescription = null)
+            Spacer(modifier = Modifier.width(8.dp))
+            Text("Re-run Initial Setup Wizard", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
         }
 
         AnimatedVisibility(visible = savedFeedback) {
@@ -723,6 +1058,150 @@ fun ProfileScreen(
                         color = MaterialTheme.colorScheme.tertiary
                     )
                 }
+            }
+        }
+    }
+
+    if (showAvatarBottomSheet) {
+        ModalBottomSheet(
+            onDismissRequest = { showAvatarBottomSheet = false },
+            shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
+            containerColor = MaterialTheme.colorScheme.surface
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(24.dp),
+                verticalArrangement = Arrangement.spacedBy(18.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Profile Picture",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+
+                    IconButton(onClick = { showAvatarBottomSheet = false }) {
+                        Icon(imageVector = Icons.Default.Close, contentDescription = "Close")
+                    }
+                }
+
+                // Option 1: Choose from Gallery
+                Button(
+                    onClick = {
+                        showAvatarBottomSheet = false
+                        imagePickerLauncher.launch("image/*")
+                    },
+                    shape = RoundedCornerShape(18.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(54.dp)
+                ) {
+                    Icon(imageVector = Icons.Default.PhotoLibrary, contentDescription = null)
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Text("Choose Photo from Gallery", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                }
+
+                HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f))
+
+                Text(
+                    text = "OR CHOOSE A SCHOLAR PRESET",
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 1.1.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                // Option 2: Preset Avatars Row
+                val presets = listOf(
+                    "scholar" to ("Scholar" to Icons.Default.School),
+                    "science" to ("Scientist" to Icons.Default.Science),
+                    "tech" to ("Developer" to Icons.Default.Computer),
+                    "art" to ("Creative" to Icons.Default.Palette),
+                    "nature" to ("Growth" to Icons.Default.Spa),
+                    "star" to ("Star" to Icons.Default.Star)
+                )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    presets.forEach { (key, pair) ->
+                        val (label, icon) = pair
+                        val presetString = "preset:$key"
+                        val isSelected = avatarUri == presetString
+
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier.clickable {
+                                avatarUri = presetString
+                                view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                                onUpdateProfile(
+                                    name, academicLevel, motto, targetDailyHours, presetString,
+                                    workMinsText.toIntOrNull() ?: 25,
+                                    breakMinsText.toIntOrNull() ?: 5,
+                                    longBreakMinsText.toIntOrNull() ?: 15
+                                )
+                                savedFeedback = true
+                                showAvatarBottomSheet = false
+                            }
+                        ) {
+                            Surface(
+                                shape = CircleShape,
+                                color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
+                                border = if (isSelected) BorderStroke(2.dp, MaterialTheme.colorScheme.primary) else null,
+                                modifier = Modifier.size(46.dp)
+                            ) {
+                                Box(contentAlignment = Alignment.Center) {
+                                    Icon(
+                                        imageVector = icon,
+                                        contentDescription = label,
+                                        tint = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.size(22.dp)
+                                    )
+                                }
+                            }
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = label,
+                                style = MaterialTheme.typography.labelSmall,
+                                fontSize = 10.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+
+                // Option 3: Remove Picture
+                if (avatarUri.isNotEmpty()) {
+                    OutlinedButton(
+                        onClick = {
+                            avatarUri = ""
+                            view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                            onUpdateProfile(
+                                name, academicLevel, motto, targetDailyHours, "",
+                                workMinsText.toIntOrNull() ?: 25,
+                                breakMinsText.toIntOrNull() ?: 5,
+                                longBreakMinsText.toIntOrNull() ?: 15
+                            )
+                            savedFeedback = true
+                            showAvatarBottomSheet = false
+                        },
+                        shape = RoundedCornerShape(18.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(imageVector = Icons.Default.Delete, contentDescription = null, tint = MaterialTheme.colorScheme.error)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Remove Profile Picture", color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.Bold)
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
             }
         }
     }

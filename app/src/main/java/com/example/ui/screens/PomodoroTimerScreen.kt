@@ -26,6 +26,10 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import android.view.HapticFeedbackConstants
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -48,6 +52,18 @@ fun PomodoroTimerScreen(
     modifier: Modifier = Modifier
 ) {
     val scrollState = rememberScrollState()
+    val haptic = LocalHapticFeedback.current
+    val view = LocalView.current
+
+    // Trigger haptic feedback when session completes (timer reaches 0)
+    var prevRemainingSeconds by remember { mutableIntStateOf(timerState.remainingSeconds) }
+    LaunchedEffect(timerState.remainingSeconds) {
+        if (timerState.remainingSeconds == 0 && prevRemainingSeconds > 0) {
+            view.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
+            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+        }
+        prevRemainingSeconds = timerState.remainingSeconds
+    }
 
     val progressFraction = if (timerState.totalSeconds > 0) {
         (timerState.remainingSeconds.toFloat() / timerState.totalSeconds.toFloat()).coerceIn(0f, 1f)
@@ -102,7 +118,10 @@ fun PomodoroTimerScreen(
             PomodoroMode.entries.forEachIndexed { index, mode ->
                 SegmentedButton(
                     selected = timerState.mode == mode,
-                    onClick = { onSetMode(mode) },
+                    onClick = {
+                        view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                        onSetMode(mode)
+                    },
                     shape = SegmentedButtonDefaults.itemShape(index = index, count = PomodoroMode.entries.size),
                     colors = SegmentedButtonDefaults.colors(
                         activeContainerColor = MaterialTheme.colorScheme.primaryContainer,
@@ -142,7 +161,10 @@ fun PomodoroTimerScreen(
 
                         FilterChip(
                             selected = isSelected,
-                            onClick = { onSelectSubject(subject.id) },
+                            onClick = {
+                                view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                                onSelectSubject(subject.id)
+                            },
                             shape = RoundedCornerShape(16.dp),
                             label = {
                                 Text(
@@ -244,7 +266,10 @@ fun PomodoroTimerScreen(
                 ) {
                     // Reset Button
                     IconButton(
-                        onClick = onResetTimer,
+                        onClick = {
+                            view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+                            onResetTimer()
+                        },
                         modifier = Modifier
                             .size(52.dp)
                             .background(
@@ -262,7 +287,15 @@ fun PomodoroTimerScreen(
 
                     // Main Start/Pause Pill Button
                     Button(
-                        onClick = onToggleTimer,
+                        onClick = {
+                            if (timerState.isRunning) {
+                                view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                            } else {
+                                view.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
+                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                            }
+                            onToggleTimer()
+                        },
                         shape = RoundedCornerShape(20.dp),
                         colors = ButtonDefaults.buttonColors(
                             containerColor = MaterialTheme.colorScheme.primary,

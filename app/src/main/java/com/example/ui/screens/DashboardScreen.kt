@@ -15,6 +15,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
+import androidx.compose.material.icons.automirrored.outlined.Assignment
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -116,27 +117,11 @@ fun DashboardScreen(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .size(50.dp)
-                            .clip(CircleShape)
-                            .background(
-                                Brush.linearGradient(
-                                    colors = listOf(
-                                        MaterialTheme.colorScheme.primary,
-                                        MaterialTheme.colorScheme.tertiary
-                                    )
-                                )
-                            ),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = (userNameFirst.take(1)).uppercase(),
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.White
-                        )
-                    }
+                    UserProfileAvatar(
+                        avatarUri = userProfile?.avatarUri ?: "",
+                        name = userNameFirst,
+                        size = 50.dp
+                    )
 
                     Column {
                         Text(
@@ -354,7 +339,7 @@ fun DashboardScreen(
                             }
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Icon(
-                                    imageVector = Icons.Outlined.Assignment,
+                                    imageVector = Icons.AutoMirrored.Outlined.Assignment,
                                     contentDescription = null,
                                     tint = OnPastelSkyBlue,
                                     modifier = Modifier.size(16.dp)
@@ -439,7 +424,7 @@ fun DashboardScreen(
                             }
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Icon(
-                                    imageVector = Icons.Outlined.Assignment,
+                                    imageVector = Icons.AutoMirrored.Outlined.Assignment,
                                     contentDescription = null,
                                     tint = OnPastelMintGreen,
                                     modifier = Modifier.size(16.dp)

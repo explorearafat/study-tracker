@@ -19,19 +19,27 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.platform.LocalContext
 import com.example.data.model.StudySession
 import com.example.data.model.Subject
+import com.example.data.model.UserProfile
 import com.example.ui.components.StudyBarChart
 import com.example.ui.components.SubjectIcon
+import com.example.util.PdfExporter
+import java.io.File
 import java.util.*
 
 @Composable
 fun AnalyticsScreen(
     sessions: List<StudySession>,
     subjects: List<Subject>,
+    userProfile: UserProfile? = null,
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
     var selectedSubjectFilterId by remember { mutableStateOf<Int?>(null) } // null = All Subjects
+    var generatedPdfFile by remember { mutableStateOf<File?>(null) }
+    var isExportingPdf by remember { mutableStateOf(false) }
 
     val filteredSessions = remember(sessions, selectedSubjectFilterId) {
         if (selectedSubjectFilterId == null) {
@@ -275,6 +283,159 @@ fun AnalyticsScreen(
                                             .height(8.dp)
                                             .clip(CircleShape)
                                     )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Export Study Report PDF Card
+        item {
+            Card(
+                shape = RoundedCornerShape(24.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f)),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)),
+                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("export_pdf_card")
+            ) {
+                Column(
+                    modifier = Modifier.padding(20.dp),
+                    verticalArrangement = Arrangement.spacedBy(14.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            Surface(
+                                shape = CircleShape,
+                                color = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(42.dp)
+                            ) {
+                                Box(contentAlignment = Alignment.Center) {
+                                    Icon(
+                                        imageVector = Icons.Default.PictureAsPdf,
+                                        contentDescription = null,
+                                        tint = Color.White,
+                                        modifier = Modifier.size(22.dp)
+                                    )
+                                }
+                            }
+
+                            Column {
+                                Text(
+                                    text = "Export Academic PDF Report",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                                Text(
+                                    text = "Share or archive your study achievements",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    }
+
+                    Text(
+                        text = "Generate an official formatted PDF progress report including study session breakdowns, time totals, and subject distribution.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        // Weekly Export Button
+                        Button(
+                            onClick = {
+                                isExportingPdf = true
+                                val file = PdfExporter.generateAndSharePdfReport(
+                                    context = context,
+                                    period = PdfExporter.ReportPeriod.WEEKLY,
+                                    userProfile = userProfile,
+                                    sessions = sessions,
+                                    subjects = subjects
+                                )
+                                isExportingPdf = false
+                                generatedPdfFile = file
+                                file?.let { PdfExporter.sharePdfFile(context, it) }
+                            },
+                            shape = RoundedCornerShape(14.dp),
+                            enabled = !isExportingPdf,
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(46.dp)
+                        ) {
+                            Icon(imageVector = Icons.Default.DateRange, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("Weekly (7 Days)", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelLarge)
+                        }
+
+                        // Monthly Export Button
+                        FilledTonalButton(
+                            onClick = {
+                                isExportingPdf = true
+                                val file = PdfExporter.generateAndSharePdfReport(
+                                    context = context,
+                                    period = PdfExporter.ReportPeriod.MONTHLY,
+                                    userProfile = userProfile,
+                                    sessions = sessions,
+                                    subjects = subjects
+                                )
+                                isExportingPdf = false
+                                generatedPdfFile = file
+                                file?.let { PdfExporter.sharePdfFile(context, it) }
+                            },
+                            shape = RoundedCornerShape(14.dp),
+                            enabled = !isExportingPdf,
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(46.dp)
+                        ) {
+                            Icon(imageVector = Icons.Default.CalendarMonth, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("Monthly (30 Days)", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelLarge)
+                        }
+                    }
+
+                    if (generatedPdfFile != null) {
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = MaterialTheme.colorScheme.primaryContainer,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 14.dp, vertical = 10.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    Icon(imageVector = Icons.Default.CheckCircle, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                                    Text("PDF Report Generated!", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodySmall)
+                                }
+
+                                TextButton(
+                                    onClick = {
+                                        generatedPdfFile?.let { PdfExporter.sharePdfFile(context, it) }
+                                    }
+                                ) {
+                                    Text("Share / View Again", fontWeight = FontWeight.Bold)
                                 }
                             }
                         }
