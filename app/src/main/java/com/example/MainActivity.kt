@@ -1,8 +1,14 @@
 package com.example
 
+import android.Manifest
+import android.content.Intent
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.Spring
@@ -26,8 +32,10 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavGraph.Companion.findStartDestination
@@ -35,9 +43,14 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.example.notifications.FocusShieldService
+import com.example.notifications.NotificationHelper
 import com.example.ui.MainViewModel
+import com.example.ui.components.FocusBlockAlertDialog
 import com.example.ui.screens.*
 import com.example.ui.theme.StudyTrackerTheme
+import com.example.util.FocusShieldManager
+import kotlinx.coroutines.flow.MutableStateFlow
 
 enum class Screen(
     val route: String,
@@ -54,32 +67,101 @@ enum class Screen(
 }
 
 class MainActivity : ComponentActivity() {
+
+    private val blockedAppNameFlow = MutableStateFlow<String?>(null)
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        handleFocusBlockIntent(intent)
 
         setContent {
-            StudyTrackerApp()
+            val blockedAppName by blockedAppNameFlow.collectAsStateWithLifecycle()
+            StudyTrackerApp(
+                blockedAppName = blockedAppName,
+                onDismissBlockedAlert = { blockedAppNameFlow.value = null }
+            )
+        }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        handleFocusBlockIntent(intent)
+    }
+
+    private fun handleFocusBlockIntent(intent: Intent?) {
+        if (intent?.getBooleanExtra("SHOW_FOCUS_BLOCK_ALERT", false) == true) {
+            val appName = intent.getStringExtra("BLOCKED_APP_NAME") ?: "Social Media App"
+            blockedAppNameFlow.value = appName
         }
     }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun StudyTrackerApp(viewModel: MainViewModel = viewModel()) {
+fun StudyTrackerApp(
+    viewModel: MainViewModel = viewModel(),
+    blockedAppName: String? = null,
+    onDismissBlockedAlert: () -> Unit = {}
+) {
+    val context = LocalContext.current
     val userProfile by viewModel.userProfile.collectAsStateWithLifecycle()
-    val subjects by viewModel.subjects.collectAsStateWithLifecycle()
-    val sessions by viewModel.sessions.collectAsStateWithLifecycle()
-    val tasks by viewModel.tasks.collectAsStateWithLifecycle()
-    val timerUiState by viewModel.timerUiState.collectAsStateWithLifecycle()
-    val quoteUiState by viewModel.quoteUiState.collectAsStateWithLifecycle()
-
     val isDarkMode = userProfile?.isDarkMode ?: false
+    val timerUiState by viewModel.timerUiState.collectAsStateWithLifecycle()
+    val subjects by viewModel.subjects.collectAsStateWithLifecycle()
+    val selectedSubject = subjects.find { it.id == timerUiState.selectedSubjectId }
+
+    LaunchedEffect(Unit) {
+        NotificationHelper.createNotificationChannel(context)
+    }
+
+    LaunchedEffect(timerUiState.isRunning) {
+        if (timerUiState.isRunning) {
+            if (FocusShieldManager.isShieldEnabled(context)) {
+                FocusShieldService.startService(
+                    context = context,
+                    subjectName = selectedSubject?.name ?: "Focus Session",
+                    remainingSeconds = timerUiState.remainingSeconds
+                )
+            }
+        } else {
+            if (FocusShieldService.isRunning) {
+                FocusShieldService.stopService(context)
+            }
+        }
+    }
+
+    val notificationPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission(),
+        onResult = { }
+    )
+
+    LaunchedEffect(Unit) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+            }
+        }
+    }
 
     StudyTrackerTheme(darkTheme = isDarkMode) {
+        if (blockedAppName != null) {
+            FocusBlockAlertDialog(
+                blockedAppName = blockedAppName,
+                remainingSeconds = timerUiState.remainingSeconds,
+                onDismiss = onDismissBlockedAlert,
+                onEmergencyPause = {
+                    viewModel.toggleTimer()
+                    onDismissBlockedAlert()
+                }
+            )
+        }
+
         val showOnboarding = userProfile != null && !userProfile!!.isOnboardingCompleted
 
         if (showOnboarding) {
+            val subjects by viewModel.subjects.collectAsStateWithLifecycle()
             OnboardingScreen(
                 userProfile = userProfile,
                 subjects = subjects,
@@ -98,7 +180,9 @@ fun StudyTrackerApp(viewModel: MainViewModel = viewModel()) {
             topBar = {
                 CenterAlignedTopAppBar(
                     title = {
-                        val currentScreen = Screen.entries.find { it.route == currentRoute }
+                        val currentScreen = remember(currentRoute) {
+                            Screen.entries.find { it.route == currentRoute }
+                        }
                         Text(
                             text = currentScreen?.title ?: "Study Tracker",
                             fontWeight = FontWeight.ExtraBold,
@@ -199,6 +283,10 @@ fun StudyTrackerApp(viewModel: MainViewModel = viewModel()) {
                 }
             ) {
                 composable(Screen.Dashboard.route) {
+                    val subjects by viewModel.subjects.collectAsStateWithLifecycle()
+                    val sessions by viewModel.sessions.collectAsStateWithLifecycle()
+                    val quoteUiState by viewModel.quoteUiState.collectAsStateWithLifecycle()
+
                     DashboardScreen(
                         userProfile = userProfile,
                         subjects = subjects,
@@ -230,17 +318,23 @@ fun StudyTrackerApp(viewModel: MainViewModel = viewModel()) {
                 }
 
                 composable(Screen.Timer.route) {
+                    val timerUiState by viewModel.timerUiState.collectAsStateWithLifecycle()
+                    val subjects by viewModel.subjects.collectAsStateWithLifecycle()
+
                     PomodoroTimerScreen(
                         timerState = timerUiState,
                         subjects = subjects,
                         onToggleTimer = { viewModel.toggleTimer() },
                         onResetTimer = { viewModel.resetTimer() },
                         onSetMode = { mode -> viewModel.setTimerMode(mode) },
-                        onSelectSubject = { subId -> viewModel.selectTimerSubject(subId) }
+                        onSelectSubject = { subId -> viewModel.selectTimerSubject(subId) },
+                        onAddMinutes = { mins -> viewModel.addTimerMinutes(mins) }
                     )
                 }
 
                 composable(Screen.Subjects.route) {
+                    val subjects by viewModel.subjects.collectAsStateWithLifecycle()
+
                     SubjectsScreen(
                         subjects = subjects,
                         onAddSubject = { name, cat, colorHex, targetMins, iconName ->
@@ -255,6 +349,9 @@ fun StudyTrackerApp(viewModel: MainViewModel = viewModel()) {
                 }
 
                 composable(Screen.Tasks.route) {
+                    val tasks by viewModel.tasks.collectAsStateWithLifecycle()
+                    val subjects by viewModel.subjects.collectAsStateWithLifecycle()
+
                     TasksScreen(
                         tasks = tasks,
                         subjects = subjects,
@@ -267,6 +364,9 @@ fun StudyTrackerApp(viewModel: MainViewModel = viewModel()) {
                 }
 
                 composable(Screen.Analytics.route) {
+                    val sessions by viewModel.sessions.collectAsStateWithLifecycle()
+                    val subjects by viewModel.subjects.collectAsStateWithLifecycle()
+
                     AnalyticsScreen(
                         sessions = sessions,
                         subjects = subjects,
@@ -275,6 +375,10 @@ fun StudyTrackerApp(viewModel: MainViewModel = viewModel()) {
                 }
 
                 composable(Screen.Profile.route) {
+                    val sessions by viewModel.sessions.collectAsStateWithLifecycle()
+                    val tasks by viewModel.tasks.collectAsStateWithLifecycle()
+                    val subjects by viewModel.subjects.collectAsStateWithLifecycle()
+
                     ProfileScreen(
                         userProfile = userProfile,
                         sessions = sessions,

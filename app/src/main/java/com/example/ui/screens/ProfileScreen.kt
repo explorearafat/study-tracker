@@ -239,7 +239,6 @@ fun ProfileScreen(
         }
     }
 
-    // Analytics calculations
     val totalSeconds = remember(sessions) { sessions.sumOf { it.durationSeconds } }
     val totalHours = totalSeconds / 3600f
     val displayHours = totalSeconds / 3600
@@ -247,7 +246,6 @@ fun ProfileScreen(
 
     val completedTasksCount = remember(tasks) { tasks.count { it.isCompleted } }
 
-    // Calculate today's study hours
     val todaySeconds = remember(sessions) {
         val calendar = Calendar.getInstance()
         val year = calendar.get(Calendar.YEAR)
@@ -260,7 +258,6 @@ fun ProfileScreen(
     }
     val todayHours = todaySeconds / 3600f
 
-    // Achievements list
     val achievements = remember(sessions, tasks, subjects, todayHours, targetDailyHours) {
         listOf(
             AchievementBadge(
@@ -330,7 +327,6 @@ fun ProfileScreen(
             .testTag("profile_screen"),
         verticalArrangement = Arrangement.spacedBy(18.dp)
     ) {
-        // Top Subtitle & Header
         Column(modifier = Modifier.fillMaxWidth()) {
             Text(
                 text = "PROFILE & GOALS",
@@ -347,7 +343,6 @@ fun ProfileScreen(
             )
         }
 
-        // Profile Header Card
         Card(
             shape = RoundedCornerShape(28.dp),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
@@ -393,7 +388,6 @@ fun ProfileScreen(
             }
         }
 
-        // Total Study Time & Summary Stats Cards
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Text(
                 text = "Study Time Summary",
@@ -406,7 +400,6 @@ fun ProfileScreen(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                // Total Focus Time Card
                 Card(
                     shape = RoundedCornerShape(24.dp),
                     colors = CardDefaults.cardColors(containerColor = Color(0xFFEEF2FF)),
@@ -444,7 +437,6 @@ fun ProfileScreen(
                     }
                 }
 
-                // Completed Tasks Card
                 Card(
                     shape = RoundedCornerShape(24.dp),
                     colors = CardDefaults.cardColors(containerColor = Color(0xFFD1FAE5)),
@@ -484,7 +476,6 @@ fun ProfileScreen(
             }
         }
 
-        // Daily Study Goal Settings Card
         Card(
             shape = RoundedCornerShape(28.dp),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
@@ -542,7 +533,6 @@ fun ProfileScreen(
                     )
                 }
 
-                // Slider Control
                 Slider(
                     value = targetDailyHours,
                     onValueChange = { targetDailyHours = (it * 2).toInt() / 2f },
@@ -555,7 +545,6 @@ fun ProfileScreen(
                     modifier = Modifier.fillMaxWidth()
                 )
 
-                // Quick Preset Pills
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -574,7 +563,6 @@ fun ProfileScreen(
             }
         }
 
-        // Achievements & Badges Grid
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -682,7 +670,6 @@ fun ProfileScreen(
             }
         }
 
-        // Dark Mode Toggle Card
         Card(
             shape = RoundedCornerShape(24.dp),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
@@ -739,7 +726,6 @@ fun ProfileScreen(
             }
         }
 
-        // Personal Information Form
         Card(
             shape = RoundedCornerShape(28.dp),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
@@ -798,7 +784,6 @@ fun ProfileScreen(
             }
         }
 
-        // Pomodoro Timer Defaults
         Card(
             shape = RoundedCornerShape(28.dp),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
@@ -851,7 +836,6 @@ fun ProfileScreen(
             }
         }
 
-        // Daily Study Reminders
         Card(
             shape = RoundedCornerShape(28.dp),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
@@ -996,7 +980,8 @@ fun ProfileScreen(
             }
         }
 
-        // Save Profile Button
+        FocusShieldCard()
+
         Button(
             onClick = {
                 val wMins = workMinsText.toIntOrNull() ?: 25
@@ -1019,7 +1004,6 @@ fun ProfileScreen(
             Text("Save Profile & Goal Settings", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
         }
 
-        // Re-run Initial Setup Wizard Button
         OutlinedButton(
             onClick = {
                 view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
@@ -1091,7 +1075,6 @@ fun ProfileScreen(
                     }
                 }
 
-                // Option 1: Choose from Gallery
                 Button(
                     onClick = {
                         showAvatarBottomSheet = false
@@ -1117,7 +1100,6 @@ fun ProfileScreen(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
 
-                // Option 2: Preset Avatars Row
                 val presets = listOf(
                     "scholar" to ("Scholar" to Icons.Default.School),
                     "science" to ("Scientist" to Icons.Default.Science),
@@ -1177,7 +1159,6 @@ fun ProfileScreen(
                     }
                 }
 
-                // Option 3: Remove Picture
                 if (avatarUri.isNotEmpty()) {
                     OutlinedButton(
                         onClick = {

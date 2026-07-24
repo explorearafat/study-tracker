@@ -180,7 +180,6 @@ fun CircularProgressGoalCard(
 
             Spacer(modifier = Modifier.width(16.dp))
 
-            // Circular progress ring
             Box(
                 contentAlignment = Alignment.Center,
                 modifier = Modifier.size(88.dp)
@@ -239,7 +238,7 @@ fun PriorityChip(priority: String, modifier: Modifier = Modifier) {
 
 @Composable
 fun StudyBarChart(
-    daysData: List<Pair<String, Float>>, // Pair(DayLabel, Hours)
+    daysData: List<Pair<String, Float>>,
     maxHours: Float = 5.0f,
     modifier: Modifier = Modifier
 ) {
@@ -298,7 +297,6 @@ fun StudyBarChart(
                                 .weight(1f),
                             contentAlignment = Alignment.BottomCenter
                         ) {
-                            // Track
                             Box(
                                 modifier = Modifier
                                     .fillMaxHeight()
@@ -306,7 +304,6 @@ fun StudyBarChart(
                                     .clip(RoundedCornerShape(10.dp))
                                     .background(trackColor)
                             )
-                            // Filled Bar
                             Box(
                                 modifier = Modifier
                                     .fillMaxHeight(animatedFraction.coerceAtLeast(0.04f))

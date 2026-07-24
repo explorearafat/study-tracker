@@ -58,13 +58,11 @@ fun MotivationalQuoteCard(
             Column(
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                // Header Row
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Gemini AI Spark Pill
                     Surface(
                         shape = CircleShape,
                         color = Color(0xFF4F46E5),
@@ -89,7 +87,6 @@ fun MotivationalQuoteCard(
                         }
                     }
 
-                    // Refresh Quote Button
                     IconButton(
                         onClick = onRefreshQuote,
                         enabled = !isLoading,
@@ -115,7 +112,6 @@ fun MotivationalQuoteCard(
                     }
                 }
 
-                // Quote Content Area
                 if (isLoading && quote == null) {
                     Box(
                         modifier = Modifier

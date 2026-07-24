@@ -62,16 +62,14 @@ fun OnboardingScreen(
     val view = LocalView.current
     val haptic = LocalHapticFeedback.current
 
-    var currentStep by remember { mutableIntStateOf(1) } // 1: Profile Setup, 2: Daily Task Setup
+    var currentStep by remember { mutableIntStateOf(1) }
 
-    // Step 1 State: Profile Setup
     var name by remember(userProfile) { mutableStateOf(userProfile?.name ?: "Alex Scholar") }
     var academicLevel by remember(userProfile) { mutableStateOf(userProfile?.academicLevel ?: "Computer Science Student") }
     var motto by remember(userProfile) { mutableStateOf(userProfile?.motto ?: "Building consistent habits every single day.") }
     var avatarUri by remember(userProfile) { mutableStateOf(userProfile?.avatarUri ?: "preset:scholar") }
     var targetDailyHours by remember(userProfile) { mutableFloatStateOf(userProfile?.targetDailyHours ?: 3.5f) }
 
-    // Step 2 State: Daily Task Setup
     val setupTasks = remember {
         mutableStateListOf(
             Triple("Review daily lecture notes", subjects.firstOrNull()?.id ?: 1, "High"),
@@ -83,9 +81,8 @@ fun OnboardingScreen(
     var selectedSubjectId by remember(subjects) { mutableIntStateOf(subjects.firstOrNull()?.id ?: 1) }
     var selectedPriority by remember { mutableStateOf("Medium") }
 
-    // Reminder State
     var reminderEnabled by remember { mutableStateOf(true) }
-    var reminderHour by remember { mutableIntStateOf(20) } // 8:00 PM
+    var reminderHour by remember { mutableIntStateOf(20) }
     var reminderMinute by remember { mutableIntStateOf(0) }
 
     val notificationPermissionLauncher = rememberLauncherForActivityResult(
@@ -131,7 +128,6 @@ fun OnboardingScreen(
                 .navigationBarsPadding()
                 .padding(24.dp)
         ) {
-            // Header Progress Indicator
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -171,7 +167,6 @@ fun OnboardingScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Step Progress Bar
             LinearProgressIndicator(
                 progress = { if (currentStep == 1) 0.5f else 1.0f },
                 modifier = Modifier
@@ -184,7 +179,6 @@ fun OnboardingScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Animated Screen Transition between Step 1 and Step 2
             AnimatedContent(
                 targetState = currentStep,
                 transitionSpec = {
@@ -199,7 +193,6 @@ fun OnboardingScreen(
                 modifier = Modifier.weight(1f)
             ) { step ->
                 if (step == 1) {
-                    // STEP 1: Profile Setup
                     Column(
                         modifier = Modifier
                             .fillMaxSize()
@@ -221,7 +214,6 @@ fun OnboardingScreen(
                             )
                         }
 
-                        // Avatar Picker Section
                         Card(
                             shape = RoundedCornerShape(24.dp),
                             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
@@ -249,7 +241,6 @@ fun OnboardingScreen(
                                     color = MaterialTheme.colorScheme.onSurface
                                 )
 
-                                // Preset Avatar Buttons
                                 val presets = listOf(
                                     "scholar" to Icons.Default.School,
                                     "science" to Icons.Default.Science,
@@ -290,7 +281,6 @@ fun OnboardingScreen(
                             }
                         }
 
-                        // Profile Details Inputs
                         OutlinedTextField(
                             value = name,
                             onValueChange = { name = it },
@@ -323,7 +313,6 @@ fun OnboardingScreen(
                             modifier = Modifier.fillMaxWidth()
                         )
 
-                        // Target Daily Study Hours Slider
                         Card(
                             shape = RoundedCornerShape(20.dp),
                             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
@@ -363,7 +352,6 @@ fun OnboardingScreen(
                         Spacer(modifier = Modifier.height(10.dp))
                     }
                 } else {
-                    // STEP 2: Daily Task Setup
                     Column(
                         modifier = Modifier
                             .fillMaxSize()
@@ -385,7 +373,6 @@ fun OnboardingScreen(
                             )
                         }
 
-                        // Add Task Input Card
                         Card(
                             shape = RoundedCornerShape(24.dp),
                             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
@@ -415,7 +402,6 @@ fun OnboardingScreen(
                                     modifier = Modifier.fillMaxWidth(),
                                     horizontalArrangement = Arrangement.spacedBy(10.dp)
                                 ) {
-                                    // Subject Selector
                                     var subjectExpanded by remember { mutableStateOf(false) }
                                     val currentSubject = subjects.find { it.id == selectedSubjectId } ?: subjects.firstOrNull()
 
@@ -448,7 +434,6 @@ fun OnboardingScreen(
                                         }
                                     }
 
-                                    // Priority Selector
                                     val priorities = listOf("High", "Medium", "Low")
                                     var priorityExpanded by remember { mutableStateOf(false) }
 
@@ -501,7 +486,6 @@ fun OnboardingScreen(
                             }
                         }
 
-                        // Added Tasks List
                         Text(
                             text = "Initial Tasks List (${setupTasks.size})",
                             style = MaterialTheme.typography.titleSmall,
@@ -551,7 +535,6 @@ fun OnboardingScreen(
                             }
                         }
 
-                        // Daily Reminder Card
                         Card(
                             shape = RoundedCornerShape(24.dp),
                             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
@@ -637,7 +620,6 @@ fun OnboardingScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Bottom Navigation Buttons (Back & Next/Finish)
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -665,7 +647,6 @@ fun OnboardingScreen(
                         if (currentStep == 1) {
                             currentStep = 2
                         } else {
-                            // Complete Onboarding
                             onCompleteOnboarding(
                                 name.ifBlank { "Alex Scholar" },
                                 academicLevel.ifBlank { "Student Scholar" },

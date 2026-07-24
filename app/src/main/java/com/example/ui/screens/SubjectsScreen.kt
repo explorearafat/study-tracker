@@ -141,7 +141,6 @@ fun SubjectsScreen(
         }
     }
 
-    // Add Subject Dialog
     if (showAddDialog) {
         SubjectDialog(
             title = "Add New Subject",
@@ -158,7 +157,6 @@ fun SubjectsScreen(
         )
     }
 
-    // Edit Subject Dialog
     subjectToEdit?.let { subject ->
         SubjectDialog(
             title = "Edit Subject",
@@ -183,7 +181,6 @@ fun SubjectsScreen(
         )
     }
 
-    // Quick Manual Time Logging Dialog
     subjectToLogTime?.let { subject ->
         LogTimeDialog(
             subjectName = subject.name,
@@ -217,7 +214,6 @@ fun SubjectCard(
             .iosClickable { isExpanded = !isExpanded }
     ) {
         Column(modifier = Modifier.padding(18.dp)) {
-            // Main Top Row
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -284,7 +280,6 @@ fun SubjectCard(
 
             Spacer(modifier = Modifier.height(14.dp))
 
-            // Lesson & Assignment Pills Row from Reference UI
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 Surface(
                     shape = CircleShape,
@@ -312,7 +307,6 @@ fun SubjectCard(
                 }
             }
 
-            // Expanded Chapter Syllabus Progress Checklist (from Reference UI Panel 2)
             if (isExpanded) {
                 Spacer(modifier = Modifier.height(16.dp))
                 HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f))

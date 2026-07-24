@@ -11,7 +11,7 @@ data class UserProfile(
     val academicLevel: String = "University Undergraduate",
     val motto: String = "Building consistent habits every single day.",
     val targetDailyHours: Float = 3.0f,
-    val avatarUri: String = "", // Optional custom image URI or preset icon index
+    val avatarUri: String = "",
     val isDarkMode: Boolean = false,
     val pomodoroWorkMinutes: Int = 25,
     val pomodoroBreakMinutes: Int = 5,

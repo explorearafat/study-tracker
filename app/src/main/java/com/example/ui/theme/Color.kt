@@ -2,7 +2,6 @@ package com.example.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-// Modern Vibrant & Soft Pastel Theme Palette
 val IndigoPrimary = Color(0xFF4F46E5)
 val IndigoOnPrimary = Color(0xFFFFFFFF)
 val IndigoPrimaryContainer = Color(0xFFEEF2FF)
@@ -16,7 +15,6 @@ val OnSlateSecondaryContainer = Color(0xFF0F172A)
 val MintTertiary = Color(0xFF10B981)
 val MintTertiaryContainer = Color(0xFFD1FAE5)
 
-// Soft Clean Background Tint
 val SoftBackground = Color(0xFFF4F7FC)
 val SoftSurface = Color(0xFFFFFFFF)
 val SoftSurfaceVariant = Color(0xFFEFF3FA)
@@ -25,7 +23,6 @@ val SoftOnSurface = Color(0xFF0F172A)
 val SoftOnSurfaceVariant = Color(0xFF64748B)
 val SoftOutline = Color(0xFFE2E8F0)
 
-// Card Pastel Background Colors from Design Reference
 val MagentaGradientStart = Color(0xFFEC4899)
 val MagentaGradientEnd = Color(0xFFF43F5E)
 
@@ -41,7 +38,6 @@ val OnPastelSunnyYellow = Color(0xFFF57F17)
 val PastelLavender = Color(0xFFCE93D8)
 val OnPastelLavender = Color(0xFF4A148C)
 
-// Modern Dark Mode Colors
 val DarkIndigoPrimary = Color(0xFF818CF8)
 val DarkIndigoOnPrimary = Color(0xFF1E1B4B)
 val DarkIndigoPrimaryContainer = Color(0xFF312E81)
@@ -58,17 +54,17 @@ val DarkSoftOnSurface = Color(0xFFF8FAFC)
 val DarkSoftOnSurfaceVariant = Color(0xFF94A3B8)
 val DarkSoftOutline = Color(0xFF475569)
 
-// Subject Color Palette
 val SubjectColors = listOf(
-    0xFFEC4899, // Magenta / Pink
-    0xFF4F46E5, // Indigo
-    0xFF42A5F5, // Sky Blue
-    0xFF66BB6A, // Mint Green
-    0xFFFFCA28, // Sunny Yellow
-    0xFFAB47BC, // Lavender Purple
-    0xFFFF7043, // Coral Orange
-    0xFF26A69A  // Teal
+    0xFFEC4899,
+    0xFF4F46E5,
+    0xFF42A5F5,
+    0xFF66BB6A,
+    0xFFFFCA28,
+    0xFFAB47BC,
+    0xFFFF7043,
+    0xFF26A69A
 )
+
 
 
 

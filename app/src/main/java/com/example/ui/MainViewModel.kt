@@ -12,6 +12,7 @@ import com.example.data.model.Task
 import com.example.data.model.UserProfile
 import com.example.data.repository.StudyRepository
 import com.example.notifications.NotificationHelper
+import java.util.Calendar
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
@@ -64,7 +65,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             db.userProfileDao()
         )
 
-        // Fetch daily motivational quote from Gemini
         fetchMotivationalQuote()
 
         subjects = repository.allSubjects
@@ -83,7 +83,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 UserProfile()
             )
 
-        // Sync default subject for timer when subjects load
         viewModelScope.launch {
             subjects.collect { list ->
                 if (list.isNotEmpty() && _timerUiState.value.selectedSubjectId == null) {
@@ -92,7 +91,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             }
         }
 
-        // Sync pomodoro default work time if user profile changes
         viewModelScope.launch {
             userProfile.collect { profile ->
                 profile?.let { p ->
@@ -112,9 +110,31 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 }
             }
         }
+
+        viewModelScope.launch {
+            combine(subjects, sessions) { subjectList, sessionList ->
+                subjectList to sessionList
+            }.collect { (subjectList, sessionList) ->
+                if (subjectList.isNotEmpty()) {
+                    val context = getApplication<Application>().applicationContext
+                    val calendar = Calendar.getInstance().apply {
+                        set(Calendar.HOUR_OF_DAY, 0)
+                        set(Calendar.MINUTE, 0)
+                        set(Calendar.SECOND, 0)
+                        set(Calendar.MILLISECOND, 0)
+                    }
+                    val startOfTodayMs = calendar.timeInMillis
+                    val todaySessions = sessionList.filter { it.timestamp >= startOfTodayMs }
+
+                    subjectList.forEach { subject ->
+                        val todaySecs = todaySessions.filter { it.subjectId == subject.id }.sumOf { it.durationSeconds }
+                        NotificationHelper.checkAndNotifySubjectGoal(context, subject, todaySecs)
+                    }
+                }
+            }
+        }
     }
 
-    // --- Subject Operations ---
     fun addSubject(name: String, category: String, colorHex: Long, targetMinutes: Int, iconName: String) {
         viewModelScope.launch {
             repository.insertSubject(
@@ -141,7 +161,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    // --- Task Operations ---
     fun addTask(title: String, description: String, subjectId: Int?, priority: String, dueDateMs: Long?) {
         viewModelScope.launch {
             repository.insertTask(
@@ -169,7 +188,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    // --- Manual Session Logging ---
     fun logManualSession(subjectId: Int, durationMinutes: Int, notes: String) {
         viewModelScope.launch {
             repository.insertSession(
@@ -190,7 +208,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    // --- Profile & Preferences Operations ---
     fun updateProfile(
         name: String,
         academicLevel: String,
@@ -250,7 +267,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         motto: String,
         targetDailyHours: Float,
         avatarUri: String,
-        initialTasks: List<Triple<String, Int, String>>, // (title, subjectId, priority)
+        initialTasks: List<Triple<String, Int, String>>,
         reminderEnabled: Boolean,
         reminderHour: Int,
         reminderMinute: Int
@@ -270,7 +287,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             )
             repository.saveUserProfile(updatedProfile)
 
-            // Insert initial setup tasks
             initialTasks.forEach { (title, subjectId, priority) ->
                 if (title.isNotBlank()) {
                     repository.insertTask(
@@ -279,13 +295,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                             title = title.trim(),
                             description = "Initial task set during setup.",
                             priority = priority,
-                            dueDateEpochMs = System.currentTimeMillis() + 86400000L // Tomorrow
+                            dueDateEpochMs = System.currentTimeMillis() + 86400000L
                         )
                     )
                 }
             }
 
-            // Schedule reminder if enabled
             val context = getApplication<Application>().applicationContext
             if (reminderEnabled) {
                 NotificationHelper.scheduleDailyReminder(context, reminderHour, reminderMinute)
@@ -302,7 +317,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    // --- Pomodoro Timer Control ---
     fun selectTimerSubject(subjectId: Int) {
         _timerUiState.update { it.copy(selectedSubjectId = subjectId) }
     }
@@ -371,11 +385,20 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    fun addTimerMinutes(minutes: Int) {
+        val secondsToAdd = minutes * 60
+        _timerUiState.update {
+            it.copy(
+                remainingSeconds = it.remainingSeconds + secondsToAdd,
+                totalSeconds = it.totalSeconds + secondsToAdd
+            )
+        }
+    }
+
     private fun onTimerFinished() {
         val currentState = _timerUiState.value
         _timerUiState.update { it.copy(isRunning = false) }
 
-        // Automatically log completed work session if subject selected
         if (currentState.mode == PomodoroMode.WORK && currentState.selectedSubjectId != null) {
             val sessionSeconds = currentState.totalSeconds
             if (sessionSeconds > 0) {

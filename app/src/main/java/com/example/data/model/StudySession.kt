@@ -10,6 +10,6 @@ data class StudySession(
     val subjectId: Int,
     val durationSeconds: Int,
     val timestamp: Long = System.currentTimeMillis(),
-    val sessionType: String = "Pomodoro", // "Pomodoro", "Manual", "Timer"
+    val sessionType: String = "Pomodoro",
     val notes: String = ""
 )

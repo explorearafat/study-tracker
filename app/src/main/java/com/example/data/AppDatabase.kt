@@ -58,7 +58,6 @@ abstract class AppDatabase : RoomDatabase() {
             }
 
             suspend fun populateDatabase(db: AppDatabase) {
-                // Default Profile
                 db.userProfileDao().insertOrUpdateProfile(
                     UserProfile(
                         id = 1,
@@ -70,12 +69,11 @@ abstract class AppDatabase : RoomDatabase() {
                     )
                 )
 
-                // Pre-populate Default Subjects
                 val sub1 = db.subjectDao().insertSubject(
                     Subject(
                         name = "Computer Science",
                         category = "STEM",
-                        colorHex = 0xFF4F46E5, // Indigo
+                        colorHex = 0xFF4F46E5,
                         targetDailyMinutes = 90,
                         iconName = "Computer"
                     )
@@ -85,7 +83,7 @@ abstract class AppDatabase : RoomDatabase() {
                     Subject(
                         name = "Mathematics",
                         category = "STEM",
-                        colorHex = 0xFF0284C7, // Sky Blue
+                        colorHex = 0xFF0284C7,
                         targetDailyMinutes = 60,
                         iconName = "Calculator"
                     )
@@ -95,7 +93,7 @@ abstract class AppDatabase : RoomDatabase() {
                     Subject(
                         name = "Physics",
                         category = "STEM",
-                        colorHex = 0xFF059669, // Emerald
+                        colorHex = 0xFF059669,
                         targetDailyMinutes = 45,
                         iconName = "Science"
                     )
@@ -105,13 +103,12 @@ abstract class AppDatabase : RoomDatabase() {
                     Subject(
                         name = "English Literature",
                         category = "Humanities",
-                        colorHex = 0xFFD97706, // Amber
+                        colorHex = 0xFFD97706,
                         targetDailyMinutes = 30,
                         iconName = "Book"
                     )
                 ).toInt()
 
-                // Pre-populate Initial Tasks
                 db.taskDao().insertTask(
                     Task(
                         subjectId = sub1,
@@ -136,7 +133,7 @@ abstract class AppDatabase : RoomDatabase() {
                         title = "Review Quantum Mechanics Lecture Notes",
                         description = "Prepare summary flashcards for Friday quiz.",
                         priority = "Medium",
-                        isCompleted = true
+                        isCompleted = false
                     )
                 )
                 db.taskDao().insertTask(
@@ -149,55 +146,6 @@ abstract class AppDatabase : RoomDatabase() {
                     )
                 )
 
-                // Pre-populate recent study sessions for historical charts
-                val now = System.currentTimeMillis()
-                val oneDay = 86400000L
-
-                db.studySessionDao().insertSession(
-                    StudySession(
-                        subjectId = sub1,
-                        durationSeconds = 3600, // 60 mins
-                        timestamp = now - 10000,
-                        sessionType = "Pomodoro",
-                        notes = "Algorithms & Data Structures session"
-                    )
-                )
-                db.studySessionDao().insertSession(
-                    StudySession(
-                        subjectId = sub2,
-                        durationSeconds = 2700, // 45 mins
-                        timestamp = now - 3600000,
-                        sessionType = "Timer",
-                        notes = "Calculus problem set"
-                    )
-                )
-                db.studySessionDao().insertSession(
-                    StudySession(
-                        subjectId = sub1,
-                        durationSeconds = 3000, // 50 mins
-                        timestamp = now - oneDay,
-                        sessionType = "Pomodoro",
-                        notes = "Database query optimization"
-                    )
-                )
-                db.studySessionDao().insertSession(
-                    StudySession(
-                        subjectId = sub3,
-                        durationSeconds = 2400, // 40 mins
-                        timestamp = now - (2 * oneDay),
-                        sessionType = "Pomodoro",
-                        notes = "Electromagnetism chapter reading"
-                    )
-                )
-                db.studySessionDao().insertSession(
-                    StudySession(
-                        subjectId = sub4,
-                        durationSeconds = 1800, // 30 mins
-                        timestamp = now - (3 * oneDay),
-                        sessionType = "Manual",
-                        notes = "Reading Hamlet analysis"
-                    )
-                )
             }
         }
     }

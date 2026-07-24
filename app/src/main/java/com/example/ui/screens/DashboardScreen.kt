@@ -104,7 +104,6 @@ fun DashboardScreen(
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(20.dp)
     ) {
-        // Top Header matching design reference (Avatar + Name + Bell Icon)
         item {
             Row(
                 modifier = Modifier
@@ -157,7 +156,6 @@ fun DashboardScreen(
                             )
                         }
                     }
-                    // Red Notification Badge Dot
                     Box(
                         modifier = Modifier
                             .size(10.dp)
@@ -169,7 +167,6 @@ fun DashboardScreen(
             }
         }
 
-        // Daily Motivational Quote Section
         item {
             MotivationalQuoteCard(
                 quote = quoteUiState?.quote,
@@ -181,7 +178,6 @@ fun DashboardScreen(
             )
         }
 
-        // "Continue learning" Section
         item {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Text(
@@ -191,7 +187,6 @@ fun DashboardScreen(
                     color = MaterialTheme.colorScheme.onSurface
                 )
 
-                // Vibrant Magenta Gradient Card (Chemistry)
                 Card(
                     shape = RoundedCornerShape(32.dp),
                     elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
@@ -210,7 +205,6 @@ fun DashboardScreen(
                             .padding(22.dp)
                     ) {
                         Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                            // Top Row: Title + Tutor Pill
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -266,7 +260,6 @@ fun DashboardScreen(
                                 }
                             }
 
-                            // Middle: Class counts
                             Text(
                                 text = "15 Classes  •  3 lefts",
                                 style = MaterialTheme.typography.bodySmall,
@@ -274,7 +267,6 @@ fun DashboardScreen(
                                 color = Color.White.copy(alpha = 0.95f)
                             )
 
-                            // Progress Bar
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -296,13 +288,11 @@ fun DashboardScreen(
             }
         }
 
-        // Subject Cards Grid (Biology & English Side-by-Side Cards)
         item {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(14.dp)
             ) {
-                // Biology Card (Pastel Blue)
                 Card(
                     shape = RoundedCornerShape(28.dp),
                     colors = CardDefaults.cardColors(containerColor = PastelSkyBlue.copy(alpha = 0.85f)),
@@ -356,7 +346,6 @@ fun DashboardScreen(
 
                         Spacer(modifier = Modifier.height(4.dp))
 
-                        // Tutor Row
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -387,7 +376,6 @@ fun DashboardScreen(
                     }
                 }
 
-                // English Card (Pastel Green)
                 Card(
                     shape = RoundedCornerShape(28.dp),
                     colors = CardDefaults.cardColors(containerColor = PastelMintGreen.copy(alpha = 0.85f)),
@@ -441,7 +429,6 @@ fun DashboardScreen(
 
                         Spacer(modifier = Modifier.height(4.dp))
 
-                        // Tutor Row
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -474,7 +461,6 @@ fun DashboardScreen(
             }
         }
 
-        // "Study group" Section
         item {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Row(
@@ -502,7 +488,6 @@ fun DashboardScreen(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
-                    // Sunny Yellow Group Card with Avatar Cluster
                     Card(
                         shape = RoundedCornerShape(28.dp),
                         colors = CardDefaults.cardColors(containerColor = PastelSunnyYellow),
@@ -548,7 +533,6 @@ fun DashboardScreen(
                         }
                     }
 
-                    // Dark Blue Group Card with Avatar Cluster
                     Card(
                         shape = RoundedCornerShape(28.dp),
                         colors = CardDefaults.cardColors(containerColor = Color(0xFF1E293B)),
@@ -597,7 +581,6 @@ fun DashboardScreen(
             }
         }
 
-        // Daily Goal Progress Ring
         item {
             CircularProgressGoalCard(
                 currentMinutes = todayStudyMinutes,

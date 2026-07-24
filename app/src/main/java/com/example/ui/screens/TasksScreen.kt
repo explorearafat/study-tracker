@@ -44,7 +44,7 @@ fun TasksScreen(
     modifier: Modifier = Modifier
 ) {
     var showAddDialog by remember { mutableStateOf(false) }
-    var selectedFilterIndex by remember { mutableIntStateOf(0) } // 0: All, 1: Pending, 2: Completed
+    var selectedFilterIndex by remember { mutableIntStateOf(0) }
 
     val haptic = LocalHapticFeedback.current
     val view = LocalView.current
@@ -86,7 +86,6 @@ fun TasksScreen(
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
-            // Header
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -148,7 +147,6 @@ fun TasksScreen(
                 }
             }
 
-            // Filter Tabs
             SingleChoiceSegmentedButtonRow(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -178,7 +176,6 @@ fun TasksScreen(
                 contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 80.dp),
                 verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {
-                // Task List Items
                 items(filteredTasks, key = { it.id }) { task ->
                     val subject = subjects.find { it.id == task.subjectId }
 
@@ -232,17 +229,16 @@ fun TasksScreen(
 
                             Spacer(modifier = Modifier.width(8.dp))
 
-                            // "Details" Blue Pill Button from Reference UI
-                            Button(
-                                onClick = { handleToggleTaskCompleted(task) },
-                                shape = CircleShape,
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = Color(0xFF3B82F6),
-                                    contentColor = Color.White
-                                ),
-                                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 6.dp),
-                                modifier = Modifier.height(34.dp)
-                            ) {
+            Button(
+                onClick = { handleToggleTaskCompleted(task) },
+                shape = CircleShape,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color(0xFF3B82F6),
+                    contentColor = Color.White
+                ),
+                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 6.dp),
+                modifier = Modifier.height(34.dp)
+            ) {
                                 Text(
                                     text = if (task.isCompleted) "Done" else "Details",
                                     style = MaterialTheme.typography.labelMedium,
@@ -253,7 +249,6 @@ fun TasksScreen(
                     }
                 }
 
-                // Live Session Banner (from reference UI)
                 item {
                     Spacer(modifier = Modifier.height(6.dp))
                     Card(
@@ -266,7 +261,6 @@ fun TasksScreen(
                             modifier = Modifier.padding(18.dp),
                             verticalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
-                            // Top Row: Live pill indicator
                             Surface(
                                 shape = CircleShape,
                                 color = Color.White,
@@ -382,7 +376,6 @@ fun TasksScreen(
                     }
                 }
 
-                // Upcoming Discussion Section (from reference UI)
                 item {
                     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                         Row(
@@ -411,7 +404,6 @@ fun TasksScreen(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
-                            // Chemistry Yellow Card
                             Card(
                                 shape = RoundedCornerShape(26.dp),
                                 colors = CardDefaults.cardColors(containerColor = Color(0xFFFFE082)),
@@ -456,7 +448,6 @@ fun TasksScreen(
                                 }
                             }
 
-                            // Physics Green Card
                             Card(
                                 shape = RoundedCornerShape(26.dp),
                                 colors = CardDefaults.cardColors(containerColor = Color(0xFFA5D6A7)),
@@ -507,7 +498,6 @@ fun TasksScreen(
         }
     }
 
-    // Add Task Dialog
     if (showAddDialog) {
         AddTaskDialog(
             subjects = subjects,
@@ -556,7 +546,6 @@ fun AddTaskDialog(
                     modifier = Modifier.fillMaxWidth()
                 )
 
-                // Subject Selection Chips
                 if (subjects.isNotEmpty()) {
                     Text(
                         text = "Related Subject",
@@ -582,7 +571,6 @@ fun AddTaskDialog(
                     }
                 }
 
-                // Priority Selector
                 Text(
                     text = "Priority Level",
                     style = MaterialTheme.typography.labelLarge,

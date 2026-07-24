@@ -37,7 +37,7 @@ fun AnalyticsScreen(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
-    var selectedSubjectFilterId by remember { mutableStateOf<Int?>(null) } // null = All Subjects
+    var selectedSubjectFilterId by remember { mutableStateOf<Int?>(null) }
     var generatedPdfFile by remember { mutableStateOf<File?>(null) }
     var isExportingPdf by remember { mutableStateOf(false) }
 
@@ -73,7 +73,6 @@ fun AnalyticsScreen(
     }
     val weeklyHours = weeklySessions.sumOf { it.durationSeconds } / 3600f
 
-    // Prepare 7-day data for chart based on filtered sessions
     val weeklyDaysData = remember(filteredSessions, todayMs) {
         val days = listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
         val dayDataList = mutableListOf<Pair<String, Float>>()
@@ -84,7 +83,7 @@ fun AnalyticsScreen(
             val dayStart = tempCal.timeInMillis
             val dayEnd = dayStart + 86400000L - 1
 
-            val dayOfWeekIndex = (tempCal.get(Calendar.DAY_OF_WEEK) + 5) % 7 // Monday = 0
+            val dayOfWeekIndex = (tempCal.get(Calendar.DAY_OF_WEEK) + 5) % 7
             val dayLabel = days.getOrElse(dayOfWeekIndex) { "Day" }
 
             val secs = filteredSessions
@@ -96,7 +95,6 @@ fun AnalyticsScreen(
         dayDataList
     }
 
-    // Subject Breakdown Data across all sessions
     val subjectBreakdown = remember(sessions, subjects) {
         val overallSecs = sessions.sumOf { it.durationSeconds }
         subjects.map { subject ->
@@ -113,7 +111,6 @@ fun AnalyticsScreen(
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // Top Header
         item {
             Column(modifier = Modifier.fillMaxWidth()) {
                 Text(
@@ -132,7 +129,6 @@ fun AnalyticsScreen(
             }
         }
 
-        // Subject Filter Chips
         item {
             ScrollableTabRow(
                 selectedTabIndex = if (selectedSubjectFilterId == null) 0 else subjects.indexOfFirst { it.id == selectedSubjectFilterId } + 1,
@@ -167,7 +163,6 @@ fun AnalyticsScreen(
             }
         }
 
-        // Summary Cards Grid
         item {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -196,7 +191,6 @@ fun AnalyticsScreen(
             }
         }
 
-        // Weekly Bar Chart
         item {
             StudyBarChart(
                 daysData = weeklyDaysData,
@@ -204,7 +198,6 @@ fun AnalyticsScreen(
             )
         }
 
-        // Subject Breakdown
         item {
             Card(
                 shape = RoundedCornerShape(32.dp),
@@ -291,7 +284,6 @@ fun AnalyticsScreen(
             }
         }
 
-        // Export Study Report PDF Card
         item {
             Card(
                 shape = RoundedCornerShape(24.dp),
@@ -356,7 +348,6 @@ fun AnalyticsScreen(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        // Weekly Export Button
                         Button(
                             onClick = {
                                 isExportingPdf = true
@@ -382,7 +373,6 @@ fun AnalyticsScreen(
                             Text("Weekly (7 Days)", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelLarge)
                         }
 
-                        // Monthly Export Button
                         FilledTonalButton(
                             onClick = {
                                 isExportingPdf = true

@@ -34,7 +34,6 @@ object PdfExporter {
     ): File? {
         val pdfDocument = PdfDocument()
 
-        // Standard A4 Page dimensions at 72 DPI (595 x 842 pt)
         val pageWidth = 595
         val pageHeight = 842
         val pageInfo = PdfDocument.PageInfo.Builder(pageWidth, pageHeight, 1).create()
@@ -43,8 +42,7 @@ object PdfExporter {
 
         val paint = Paint().apply { isAntiAlias = true }
 
-        // Color Palette
-        val primaryColor = Color.parseColor("#3F51B5") // Deep Indigo
+        val primaryColor = Color.parseColor("#3F51B5")
         val primaryContainerColor = Color.parseColor("#E8EAF6")
         val textColorPrimary = Color.parseColor("#1A1C1E")
         val textColorSecondary = Color.parseColor("#5C5E62")
@@ -67,29 +65,24 @@ object PdfExporter {
         val generatedDateStr = dateFormat.format(Date(nowMs))
         val startDateStr = dateFormat.format(Date(startPeriodMs))
 
-        // 1. TOP HEADER BANNER
         paint.color = primaryColor
         canvas.drawRect(0f, 0f, pageWidth.toFloat(), 90f, paint)
 
-        // Header Title
         paint.color = Color.WHITE
         paint.textSize = 20f
         paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
         canvas.drawText("ACADEMIC STUDY PROGRESS REPORT", 28f, 42f, paint)
 
-        // Header Subtitle
         paint.textSize = 11f
         paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.NORMAL)
         canvas.drawText("Generated on $generatedDateStr • Study Tracker", 28f, 65f, paint)
 
         var currentY = 115f
 
-        // 2. STUDENT PROFILE CARD
         paint.color = cardBgColor
         val profileRect = RectF(28f, currentY, pageWidth - 28f, currentY + 95f)
         canvas.drawRoundRect(profileRect, 12f, 12f, paint)
 
-        // Student Info
         val studentName = userProfile?.name?.ifBlank { "Alex Scholar" } ?: "Alex Scholar"
         val academicLevel = userProfile?.academicLevel?.ifBlank { "Student Scholar" } ?: "Student Scholar"
         val motto = userProfile?.motto?.ifBlank { "Building consistent daily habits." } ?: "Building consistent daily habits."
@@ -111,7 +104,6 @@ object PdfExporter {
 
         currentY += 115f
 
-        // 3. PERIOD SUMMARY CARDS (3 Stat Boxes)
         paint.color = textColorPrimary
         paint.textSize = 14f
         paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
@@ -127,18 +119,14 @@ object PdfExporter {
         val statBoxWidth = (pageWidth - 56f - 24f) / 3f
         val statBoxHeight = 65f
 
-        // Box 1: Total Study Hours
         drawStatBox(canvas, paint, 28f, currentY, statBoxWidth, statBoxHeight, "TOTAL HOURS", String.format("%.1f hrs", totalHours), primaryContainerColor, primaryColor)
 
-        // Box 2: Total Sessions
         drawStatBox(canvas, paint, 28f + statBoxWidth + 12f, currentY, statBoxWidth, statBoxHeight, "SESSIONS", "$sessionCount completed", cardBgColor, textColorPrimary)
 
-        // Box 3: Daily Average
         drawStatBox(canvas, paint, 28f + (statBoxWidth + 12f) * 2, currentY, statBoxWidth, statBoxHeight, "DAILY AVG", String.format("%.1f hrs/day", avgDailyHours), cardBgColor, accentGreen)
 
         currentY += statBoxHeight + 28f
 
-        // 4. SUBJECT-WISE BREAKDOWN TABLE
         paint.color = textColorPrimary
         paint.textSize = 14f
         paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
@@ -146,7 +134,6 @@ object PdfExporter {
 
         currentY += 14f
 
-        // Table Header
         paint.color = primaryContainerColor
         val tableHeaderRect = RectF(28f, currentY, pageWidth - 28f, currentY + 24f)
         canvas.drawRoundRect(tableHeaderRect, 6f, 6f, paint)
@@ -169,12 +156,10 @@ object PdfExporter {
             val subHours = subSecs / 3600f
             val pct = if (overallSecs > 0) (subSecs.toFloat() / overallSecs.toFloat()) * 100f else 0f
 
-            // Draw row line
             paint.color = cardBgColor
             val rowRect = RectF(28f, currentY - 12f, pageWidth - 28f, currentY + 14f)
             canvas.drawRoundRect(rowRect, 4f, 4f, paint)
 
-            // Subject Indicator dot
             try {
                 paint.color = subject.colorHex.toInt()
             } catch (e: Exception) {
@@ -198,7 +183,6 @@ object PdfExporter {
 
         currentY += 15f
 
-        // 5. RECENT STUDY LOGS TABLE (up to 6 recent items)
         if (currentY < pageHeight - 180f) {
             paint.color = textColorPrimary
             paint.textSize = 14f
@@ -239,7 +223,6 @@ object PdfExporter {
             }
         }
 
-        // 6. FOOTER
         paint.color = dividerColor
         paint.strokeWidth = 1f
         canvas.drawLine(28f, pageHeight - 45f, pageWidth - 28f, pageHeight - 45f, paint)
@@ -251,7 +234,6 @@ object PdfExporter {
 
         pdfDocument.finishPage(page)
 
-        // Write PDF to Cache directory
         val fileName = "Study_Report_${period.name.lowercase()}_${System.currentTimeMillis()}.pdf"
         val pdfFile = File(context.cacheDir, fileName)
 

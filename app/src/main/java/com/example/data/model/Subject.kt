@@ -8,8 +8,8 @@ data class Subject(
     @PrimaryKey(autoGenerate = true)
     val id: Int = 0,
     val name: String,
-    val category: String, // e.g. "STEM", "Languages", "Humanities", "Arts", "Other"
-    val colorHex: Long, // e.g. 0xFF4F46E5
+    val category: String,
+    val colorHex: Long,
     val targetDailyMinutes: Int = 60,
-    val iconName: String = "Book" // e.g. "Book", "Calculator", "Science", "Computer", "Language", "Brush", "History"
+    val iconName: String = "Book"
 )
