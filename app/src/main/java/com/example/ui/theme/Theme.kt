@@ -8,42 +8,42 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 
 private val LightColorScheme = lightColorScheme(
-    primary = ForestPrimary,
-    onPrimary = ForestOnPrimary,
-    primaryContainer = SagePrimaryContainer,
-    onPrimaryContainer = OnSagePrimaryContainer,
+    primary = IndigoPrimary,
+    onPrimary = IndigoOnPrimary,
+    primaryContainer = IndigoPrimaryContainer,
+    onPrimaryContainer = OnIndigoPrimaryContainer,
     secondary = SlateSecondary,
     onSecondary = SlateOnSecondary,
-    secondaryContainer = LightSageSecondaryContainer,
-    onSecondaryContainer = OnLightSageSecondaryContainer,
+    secondaryContainer = SlateSecondaryContainer,
+    onSecondaryContainer = OnSlateSecondaryContainer,
     tertiary = MintTertiary,
     tertiaryContainer = MintTertiaryContainer,
-    background = GeoBackground,
-    onBackground = GeoOnBackground,
-    surface = GeoSurface,
-    onSurface = GeoOnSurface,
-    surfaceVariant = GeoSurfaceVariant,
-    onSurfaceVariant = GeoOnSurfaceVariant,
-    outline = GeoOutline
+    background = SoftBackground,
+    onBackground = SoftOnBackground,
+    surface = SoftSurface,
+    onSurface = SoftOnSurface,
+    surfaceVariant = SoftSurfaceVariant,
+    onSurfaceVariant = SoftOnSurfaceVariant,
+    outline = SoftOutline
 )
 
 private val DarkColorScheme = darkColorScheme(
-    primary = DarkMintPrimary,
-    onPrimary = DarkForestOnPrimary,
-    primaryContainer = DarkForestPrimaryContainer,
-    onPrimaryContainer = DarkOnForestPrimaryContainer,
+    primary = DarkIndigoPrimary,
+    onPrimary = DarkIndigoOnPrimary,
+    primaryContainer = DarkIndigoPrimaryContainer,
+    onPrimaryContainer = DarkOnIndigoPrimaryContainer,
     secondary = DarkSlateSecondary,
-    onSecondary = Color(0xFF191C19),
-    secondaryContainer = DarkSageSecondaryContainer,
-    onSecondaryContainer = DarkGeoOnSurface,
-    tertiary = Color(0xFFB2F5B6),
-    background = DarkGeoBackground,
-    onBackground = DarkGeoOnBackground,
-    surface = DarkGeoSurface,
-    onSurface = DarkGeoOnSurface,
-    surfaceVariant = DarkGeoSurfaceVariant,
-    onSurfaceVariant = DarkGeoOnSurfaceVariant,
-    outline = DarkGeoOutline
+    onSecondary = Color(0xFF0F172A),
+    secondaryContainer = DarkSlateSecondaryContainer,
+    onSecondaryContainer = DarkSoftOnSurface,
+    tertiary = MintTertiary,
+    background = DarkSoftBackground,
+    onBackground = DarkSoftOnBackground,
+    surface = DarkSoftSurface,
+    onSurface = DarkSoftOnSurface,
+    surfaceVariant = DarkSoftSurfaceVariant,
+    onSurfaceVariant = DarkSoftOnSurfaceVariant,
+    outline = DarkSoftOutline
 )
 
 @Composable

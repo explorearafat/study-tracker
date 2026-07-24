@@ -1,6 +1,8 @@
 package com.example.ui.screens
 
+import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
@@ -32,6 +34,7 @@ import com.example.data.model.Subject
 import com.example.ui.PomodoroMode
 import com.example.ui.TimerUiState
 import com.example.ui.components.SubjectIcon
+import com.example.ui.components.iosClickable
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -52,7 +55,10 @@ fun PomodoroTimerScreen(
 
     val animatedProgress by animateFloatAsState(
         targetValue = progressFraction,
-        animationSpec = tween(durationMillis = 400),
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioNoBouncy,
+            stiffness = Spring.StiffnessLow
+        ),
         label = "TimerProgress"
     )
 

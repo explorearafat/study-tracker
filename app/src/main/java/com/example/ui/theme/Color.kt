@@ -2,54 +2,73 @@ package com.example.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-// Geometric Balance Theme Colors (Light)
-val ForestPrimary = Color(0xFF006D32)
-val ForestOnPrimary = Color(0xFFFFFFFF)
-val SagePrimaryContainer = Color(0xFFDCE5D8)
-val OnSagePrimaryContainer = Color(0xFF191C19)
+// Modern Vibrant & Soft Pastel Theme Palette
+val IndigoPrimary = Color(0xFF4F46E5)
+val IndigoOnPrimary = Color(0xFFFFFFFF)
+val IndigoPrimaryContainer = Color(0xFFEEF2FF)
+val OnIndigoPrimaryContainer = Color(0xFF312E81)
 
-val SlateSecondary = Color(0xFF424940)
+val SlateSecondary = Color(0xFF64748B)
 val SlateOnSecondary = Color(0xFFFFFFFF)
-val LightSageSecondaryContainer = Color(0xFFF0F3EF)
-val OnLightSageSecondaryContainer = Color(0xFF191C19)
+val SlateSecondaryContainer = Color(0xFFF1F5F9)
+val OnSlateSecondaryContainer = Color(0xFF0F172A)
 
-val MintTertiary = Color(0xFF006E38)
-val MintTertiaryContainer = Color(0xFFD2E8D1)
+val MintTertiary = Color(0xFF10B981)
+val MintTertiaryContainer = Color(0xFFD1FAE5)
 
-val GeoBackground = Color(0xFFFBFDF8)
-val GeoSurface = Color(0xFFFFFFFF)
-val GeoSurfaceVariant = Color(0xFFF0F3EF)
-val GeoOnBackground = Color(0xFF191C19)
-val GeoOnSurface = Color(0xFF191C19)
-val GeoOnSurfaceVariant = Color(0xFF424940)
-val GeoOutline = Color(0xFFEFF1ED)
+// Soft Clean Background Tint
+val SoftBackground = Color(0xFFF4F7FC)
+val SoftSurface = Color(0xFFFFFFFF)
+val SoftSurfaceVariant = Color(0xFFEFF3FA)
+val SoftOnBackground = Color(0xFF0F172A)
+val SoftOnSurface = Color(0xFF0F172A)
+val SoftOnSurfaceVariant = Color(0xFF64748B)
+val SoftOutline = Color(0xFFE2E8F0)
 
-// Geometric Balance Dark Mode Colors
-val DarkMintPrimary = Color(0xFF85D994)
-val DarkForestOnPrimary = Color(0xFF003918)
-val DarkForestPrimaryContainer = Color(0xFF005224)
-val DarkOnForestPrimaryContainer = Color(0xFFB2F5B6)
+// Card Pastel Background Colors from Design Reference
+val MagentaGradientStart = Color(0xFFEC4899)
+val MagentaGradientEnd = Color(0xFFF43F5E)
 
-val DarkSlateSecondary = Color(0xFFC2C8BF)
-val DarkSageSecondaryContainer = Color(0xFF282B27)
+val PastelSkyBlue = Color(0xFF90CAF9)
+val OnPastelSkyBlue = Color(0xFF0D47A1)
 
-val DarkGeoBackground = Color(0xFF111411)
-val DarkGeoSurface = Color(0xFF191C19)
-val DarkGeoSurfaceVariant = Color(0xFF282B27)
-val DarkGeoOnBackground = Color(0xFFE1E3DF)
-val DarkGeoOnSurface = Color(0xFFE1E3DF)
-val DarkGeoOnSurfaceVariant = Color(0xFFC2C8BF)
-val DarkGeoOutline = Color(0xFF424940)
+val PastelMintGreen = Color(0xFFA5D6A7)
+val OnPastelMintGreen = Color(0xFF1B5E20)
 
-// Preset Subject Colors aligned with Geometric Balance palette
+val PastelSunnyYellow = Color(0xFFFFE082)
+val OnPastelSunnyYellow = Color(0xFFF57F17)
+
+val PastelLavender = Color(0xFFCE93D8)
+val OnPastelLavender = Color(0xFF4A148C)
+
+// Modern Dark Mode Colors
+val DarkIndigoPrimary = Color(0xFF818CF8)
+val DarkIndigoOnPrimary = Color(0xFF1E1B4B)
+val DarkIndigoPrimaryContainer = Color(0xFF312E81)
+val DarkOnIndigoPrimaryContainer = Color(0xFFE0E7FF)
+
+val DarkSlateSecondary = Color(0xFF94A3B8)
+val DarkSlateSecondaryContainer = Color(0xFF1E293B)
+
+val DarkSoftBackground = Color(0xFF0F172A)
+val DarkSoftSurface = Color(0xFF1E293B)
+val DarkSoftSurfaceVariant = Color(0xFF334155)
+val DarkSoftOnBackground = Color(0xFFF8FAFC)
+val DarkSoftOnSurface = Color(0xFFF8FAFC)
+val DarkSoftOnSurfaceVariant = Color(0xFF94A3B8)
+val DarkSoftOutline = Color(0xFF475569)
+
+// Subject Color Palette
 val SubjectColors = listOf(
-    0xFF006D32, // Forest Green
-    0xFF00897B, // Deep Teal
-    0xFF2E7D32, // Leaf Green
-    0xFF558B2F, // Olive Green
-    0xFF00838F, // Oceanic Cyan
-    0xFFD97706, // Warm Amber Accent
-    0xFF455A64, // Slate Grey
-    0xFF6A1B9A  // Muted Plum
+    0xFFEC4899, // Magenta / Pink
+    0xFF4F46E5, // Indigo
+    0xFF42A5F5, // Sky Blue
+    0xFF66BB6A, // Mint Green
+    0xFFFFCA28, // Sunny Yellow
+    0xFFAB47BC, // Lavender Purple
+    0xFFFF7043, // Coral Orange
+    0xFF26A69A  // Teal
 )
+
+
 

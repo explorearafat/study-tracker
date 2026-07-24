@@ -4,6 +4,8 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.data.AppDatabase
+import com.example.data.api.GeminiQuoteRepository
+import com.example.data.api.MotivationalQuote
 import com.example.data.model.StudySession
 import com.example.data.model.Subject
 import com.example.data.model.Task
@@ -29,9 +31,15 @@ data class TimerUiState(
     val sessionNotes: String = ""
 )
 
+data class QuoteUiState(
+    val quote: MotivationalQuote? = null,
+    val isLoading: Boolean = false
+)
+
 class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     private val repository: StudyRepository
+    private val geminiQuoteRepository = GeminiQuoteRepository()
 
     val subjects: StateFlow<List<Subject>>
     val sessions: StateFlow<List<StudySession>>
@@ -40,6 +48,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     private val _timerUiState = MutableStateFlow(TimerUiState())
     val timerUiState: StateFlow<TimerUiState> = _timerUiState.asStateFlow()
+
+    private val _quoteUiState = MutableStateFlow(QuoteUiState(isLoading = true))
+    val quoteUiState: StateFlow<QuoteUiState> = _quoteUiState.asStateFlow()
 
     private var timerJob: Job? = null
 
@@ -51,6 +62,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             db.taskDao(),
             db.userProfileDao()
         )
+
+        // Fetch daily motivational quote from Gemini
+        fetchMotivationalQuote()
 
         subjects = repository.allSubjects
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
@@ -299,6 +313,14 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     )
                 }
             }
+        }
+    }
+
+    fun fetchMotivationalQuote(subjectTopic: String? = null) {
+        viewModelScope.launch {
+            _quoteUiState.update { it.copy(isLoading = true) }
+            val quote = geminiQuoteRepository.fetchDailyMotivationalQuote(subjectTopic)
+            _quoteUiState.update { QuoteUiState(quote = quote, isLoading = false) }
         }
     }
 }

@@ -24,6 +24,7 @@ import com.example.data.model.Subject
 import com.example.ui.components.IconPickerRow
 import com.example.ui.components.SubjectColorPickerRow
 import com.example.ui.components.SubjectIcon
+import com.example.ui.components.iosClickable
 import com.example.ui.theme.SubjectColors
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -123,12 +124,16 @@ fun SubjectsScreen(
                     }
                 }
 
-                items(subjects) { subject ->
+                items(
+                    items = subjects,
+                    key = { it.id }
+                ) { subject ->
                     SubjectCard(
                         subject = subject,
                         onEdit = { subjectToEdit = subject },
                         onDelete = { onDeleteSubject(subject) },
-                        onLogTime = { subjectToLogTime = subject }
+                        onLogTime = { subjectToLogTime = subject },
+                        modifier = Modifier.animateItem()
                     )
                 }
             }
@@ -199,15 +204,19 @@ fun SubjectCard(
     modifier: Modifier = Modifier
 ) {
     val color = Color(subject.colorHex)
+    var isExpanded by remember { mutableStateOf(false) }
 
     Card(
-        shape = RoundedCornerShape(24.dp),
+        shape = RoundedCornerShape(28.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-        modifier = modifier.fillMaxWidth()
+        modifier = modifier
+            .fillMaxWidth()
+            .iosClickable { isExpanded = !isExpanded }
     ) {
         Column(modifier = Modifier.padding(18.dp)) {
+            // Main Top Row
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -218,15 +227,15 @@ fun SubjectCard(
                     modifier = Modifier.weight(1f)
                 ) {
                     Surface(
-                        shape = RoundedCornerShape(16.dp),
+                        shape = RoundedCornerShape(18.dp),
                         color = color.copy(alpha = 0.15f),
-                        modifier = Modifier.size(48.dp)
+                        modifier = Modifier.size(52.dp)
                     ) {
                         Box(contentAlignment = Alignment.Center) {
                             SubjectIcon(
                                 iconName = subject.iconName,
                                 tint = color,
-                                modifier = Modifier.size(24.dp)
+                                modifier = Modifier.size(26.dp)
                             )
                         }
                     }
@@ -236,15 +245,21 @@ fun SubjectCard(
                     Column {
                         Text(
                             text = subject.name,
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.ExtraBold,
                             color = MaterialTheme.colorScheme.onSurface
                         )
-                        Text(
-                            text = "${subject.category} • Target: ${subject.targetDailyMinutes}m/day",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Text(
+                                text = "Tutor: Emma Jhonson",
+                                style = MaterialTheme.typography.bodySmall,
+                                fontWeight = FontWeight.Medium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
                     }
                 }
 
@@ -263,12 +278,120 @@ fun SubjectCard(
                             tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
-                    IconButton(onClick = onDelete) {
-                        Icon(
-                            imageVector = Icons.Default.DeleteOutline,
-                            contentDescription = "Delete",
-                            tint = MaterialTheme.colorScheme.error
-                        )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            // Lesson & Assignment Pills Row from Reference UI
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Surface(
+                    shape = CircleShape,
+                    color = color.copy(alpha = 0.12f),
+                    contentColor = color
+                ) {
+                    Text(
+                        text = "Lesson 20",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp)
+                    )
+                }
+                Surface(
+                    shape = CircleShape,
+                    color = MaterialTheme.colorScheme.surfaceVariant,
+                    contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                ) {
+                    Text(
+                        text = "Assignment 12",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp)
+                    )
+                }
+            }
+
+            // Expanded Chapter Syllabus Progress Checklist (from Reference UI Panel 2)
+            if (isExpanded) {
+                Spacer(modifier = Modifier.height(16.dp))
+                HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f))
+                Spacer(modifier = Modifier.height(14.dp))
+
+                Text(
+                    text = "CHAPTER CURRICULUM",
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 1.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                val chapters = listOf(
+                    Triple("Introduction", "1 Classes • Quiz", true),
+                    Triple("Chapter 1: Foundations", "3 Classes • Quiz", true),
+                    Triple("Chapter 2: Core Theory", "5 Classes • Assignment 1", false),
+                    Triple("Chapter 3: Advanced Applications", "6 Classes • Quiz", false)
+                )
+
+                chapters.forEach { (chapterTitle, subtitle, isCompleted) ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            Surface(
+                                shape = CircleShape,
+                                color = if (isCompleted) Color(0xFF10B981) else MaterialTheme.colorScheme.surfaceVariant,
+                                modifier = Modifier.size(24.dp)
+                            ) {
+                                Box(contentAlignment = Alignment.Center) {
+                                    Icon(
+                                        imageVector = if (isCompleted) Icons.Default.Check else Icons.Default.Circle,
+                                        contentDescription = null,
+                                        tint = if (isCompleted) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.size(14.dp)
+                                    )
+                                }
+                            }
+
+                            Column {
+                                Text(
+                                    text = chapterTitle,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                                Text(
+                                    text = subtitle,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+
+                        if (!isCompleted) {
+                            Surface(
+                                shape = CircleShape,
+                                color = Color(0xFFEEF2FF),
+                                modifier = Modifier.height(24.dp)
+                            ) {
+                                Text(
+                                    text = "3 lefts",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 10.sp,
+                                    color = Color(0xFF4F46E5),
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                )
+                            }
+                        }
                     }
                 }
             }

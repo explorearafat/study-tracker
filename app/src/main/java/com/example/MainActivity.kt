@@ -4,6 +4,17 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -11,6 +22,7 @@ import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
@@ -58,6 +70,7 @@ fun StudyTrackerApp(viewModel: MainViewModel = viewModel()) {
     val sessions by viewModel.sessions.collectAsStateWithLifecycle()
     val tasks by viewModel.tasks.collectAsStateWithLifecycle()
     val timerUiState by viewModel.timerUiState.collectAsStateWithLifecycle()
+    val quoteUiState by viewModel.quoteUiState.collectAsStateWithLifecycle()
 
     val isDarkMode = userProfile?.isDarkMode ?: false
 
@@ -98,6 +111,15 @@ fun StudyTrackerApp(viewModel: MainViewModel = viewModel()) {
                 ) {
                     Screen.entries.forEach { screen ->
                         val selected = currentRoute == screen.route
+                        val iconScale by animateFloatAsState(
+                            targetValue = if (selected) 1.15f else 1.0f,
+                            animationSpec = spring(
+                                dampingRatio = Spring.DampingRatioMediumBouncy,
+                                stiffness = Spring.StiffnessMediumLow
+                            ),
+                            label = "NavIconScale"
+                        )
+
                         NavigationBarItem(
                             selected = selected,
                             onClick = {
@@ -114,7 +136,8 @@ fun StudyTrackerApp(viewModel: MainViewModel = viewModel()) {
                             icon = {
                                 Icon(
                                     imageVector = if (selected) screen.selectedIcon else screen.unselectedIcon,
-                                    contentDescription = screen.title
+                                    contentDescription = screen.title,
+                                    modifier = Modifier.scale(iconScale)
                                 )
                             },
                             label = {
@@ -134,13 +157,39 @@ fun StudyTrackerApp(viewModel: MainViewModel = viewModel()) {
             NavHost(
                 navController = navController,
                 startDestination = Screen.Dashboard.route,
-                modifier = Modifier.padding(innerPadding)
+                modifier = Modifier.padding(innerPadding),
+                enterTransition = {
+                    slideInHorizontally(
+                        initialOffsetX = { 180 },
+                        animationSpec = tween(durationMillis = 240, easing = FastOutSlowInEasing)
+                    ) + fadeIn(animationSpec = tween(240))
+                },
+                exitTransition = {
+                    slideOutHorizontally(
+                        targetOffsetX = { -180 },
+                        animationSpec = tween(durationMillis = 200, easing = FastOutSlowInEasing)
+                    ) + fadeOut(animationSpec = tween(200))
+                },
+                popEnterTransition = {
+                    slideInHorizontally(
+                        initialOffsetX = { -180 },
+                        animationSpec = tween(durationMillis = 240, easing = FastOutSlowInEasing)
+                    ) + fadeIn(animationSpec = tween(240))
+                },
+                popExitTransition = {
+                    slideOutHorizontally(
+                        targetOffsetX = { 180 },
+                        animationSpec = tween(durationMillis = 200, easing = FastOutSlowInEasing)
+                    ) + fadeOut(animationSpec = tween(200))
+                }
             ) {
                 composable(Screen.Dashboard.route) {
                     DashboardScreen(
                         userProfile = userProfile,
                         subjects = subjects,
                         sessions = sessions,
+                        quoteUiState = quoteUiState,
+                        onRefreshQuote = { topic -> viewModel.fetchMotivationalQuote(topic) },
                         onNavigateToTimer = {
                             navController.navigate(Screen.Timer.route) {
                                 popUpTo(navController.graph.findStartDestination().id) { saveState = true }
@@ -212,6 +261,9 @@ fun StudyTrackerApp(viewModel: MainViewModel = viewModel()) {
                 composable(Screen.Profile.route) {
                     ProfileScreen(
                         userProfile = userProfile,
+                        sessions = sessions,
+                        tasks = tasks,
+                        subjects = subjects,
                         onUpdateProfile = { name, level, motto, targetHours, avatarUri, wMins, bMins, lbMins ->
                             viewModel.updateProfile(
                                 name, level, motto, targetHours, avatarUri, wMins, bMins, lbMins

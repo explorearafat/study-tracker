@@ -31,7 +31,17 @@ fun AnalyticsScreen(
     subjects: List<Subject>,
     modifier: Modifier = Modifier
 ) {
-    val totalSeconds = remember(sessions) { sessions.sumOf { it.durationSeconds } }
+    var selectedSubjectFilterId by remember { mutableStateOf<Int?>(null) } // null = All Subjects
+
+    val filteredSessions = remember(sessions, selectedSubjectFilterId) {
+        if (selectedSubjectFilterId == null) {
+            sessions
+        } else {
+            sessions.filter { it.subjectId == selectedSubjectFilterId }
+        }
+    }
+
+    val totalSeconds = remember(filteredSessions) { filteredSessions.sumOf { it.durationSeconds } }
     val totalHours = totalSeconds / 3600f
 
     val calendar = remember { Calendar.getInstance() }
@@ -44,19 +54,19 @@ fun AnalyticsScreen(
         }.timeInMillis
     }
 
-    val todaySeconds = remember(sessions, todayMs) {
-        sessions.filter { it.timestamp >= todayMs }.sumOf { it.durationSeconds }
+    val todaySeconds = remember(filteredSessions, todayMs) {
+        filteredSessions.filter { it.timestamp >= todayMs }.sumOf { it.durationSeconds }
     }
     val todayHours = todaySeconds / 3600f
 
     val weekAgoMs = remember { todayMs - (6 * 86400000L) }
-    val weeklySessions = remember(sessions, weekAgoMs) {
-        sessions.filter { it.timestamp >= weekAgoMs }
+    val weeklySessions = remember(filteredSessions, weekAgoMs) {
+        filteredSessions.filter { it.timestamp >= weekAgoMs }
     }
     val weeklyHours = weeklySessions.sumOf { it.durationSeconds } / 3600f
 
-    // Prepare 7-day data for chart
-    val weeklyDaysData = remember(sessions, todayMs) {
+    // Prepare 7-day data for chart based on filtered sessions
+    val weeklyDaysData = remember(filteredSessions, todayMs) {
         val days = listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
         val dayDataList = mutableListOf<Pair<String, Float>>()
 
@@ -69,7 +79,7 @@ fun AnalyticsScreen(
             val dayOfWeekIndex = (tempCal.get(Calendar.DAY_OF_WEEK) + 5) % 7 // Monday = 0
             val dayLabel = days.getOrElse(dayOfWeekIndex) { "Day" }
 
-            val secs = sessions
+            val secs = filteredSessions
                 .filter { it.timestamp in dayStart..dayEnd }
                 .sumOf { it.durationSeconds }
 
@@ -78,11 +88,12 @@ fun AnalyticsScreen(
         dayDataList
     }
 
-    // Subject Breakdown Data
+    // Subject Breakdown Data across all sessions
     val subjectBreakdown = remember(sessions, subjects) {
+        val overallSecs = sessions.sumOf { it.durationSeconds }
         subjects.map { subject ->
             val subSecs = sessions.filter { it.subjectId == subject.id }.sumOf { it.durationSeconds }
-            val fraction = if (totalSeconds > 0) subSecs.toFloat() / totalSeconds.toFloat() else 0f
+            val fraction = if (overallSecs > 0) subSecs.toFloat() / overallSecs.toFloat() else 0f
             Triple(subject, subSecs / 60, fraction)
         }.sortedByDescending { it.second }
     }
@@ -105,11 +116,46 @@ fun AnalyticsScreen(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
-                    text = "Performance & Visuals",
+                    text = "Weekly Activity Dashboard",
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onBackground
                 )
+            }
+        }
+
+        // Subject Filter Chips
+        item {
+            ScrollableTabRow(
+                selectedTabIndex = if (selectedSubjectFilterId == null) 0 else subjects.indexOfFirst { it.id == selectedSubjectFilterId } + 1,
+                edgePadding = 0.dp,
+                divider = {},
+                containerColor = Color.Transparent,
+                indicator = {}
+            ) {
+                FilterChip(
+                    selected = selectedSubjectFilterId == null,
+                    onClick = { selectedSubjectFilterId = null },
+                    label = { Text("All Subjects", fontWeight = FontWeight.Bold) },
+                    modifier = Modifier.padding(end = 8.dp)
+                )
+
+                subjects.forEach { subject ->
+                    val isSelected = selectedSubjectFilterId == subject.id
+                    FilterChip(
+                        selected = isSelected,
+                        onClick = { selectedSubjectFilterId = if (isSelected) null else subject.id },
+                        label = { Text(subject.name, fontWeight = FontWeight.Bold) },
+                        leadingIcon = {
+                            SubjectIcon(
+                                iconName = subject.iconName,
+                                tint = if (isSelected) MaterialTheme.colorScheme.onPrimary else Color(subject.colorHex),
+                                modifier = Modifier.size(16.dp)
+                            )
+                        },
+                        modifier = Modifier.padding(end = 8.dp)
+                    )
+                }
             }
         }
 
