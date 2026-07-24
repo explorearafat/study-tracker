@@ -1,11 +1,7 @@
 package com.example.ui.screens
 
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -14,581 +10,330 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
-import androidx.compose.material.icons.outlined.*
-import androidx.compose.material.icons.automirrored.outlined.Assignment
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextDecoration
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import com.example.R
-import com.example.data.api.MotivationalQuote
-import com.example.data.model.StudySession
-import com.example.data.model.Subject
-import com.example.data.model.UserProfile
-import com.example.ui.QuoteUiState
-import com.example.ui.components.CircularProgressGoalCard
-import com.example.ui.components.MotivationalQuoteCard
-import com.example.ui.components.SubjectIcon
-import com.example.ui.components.iosClickable
-import com.example.ui.theme.*
-import java.text.SimpleDateFormat
-import java.util.*
 
+import com.example.data.Subject
+import com.example.ui.MainViewModel
+
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DashboardScreen(
-    userProfile: UserProfile?,
-    subjects: List<Subject>,
-    sessions: List<StudySession>,
-    quoteUiState: QuoteUiState? = null,
-    onRefreshQuote: ((String?) -> Unit)? = null,
-    onNavigateToTimer: () -> Unit,
-    onNavigateToSubjects: () -> Unit,
-    onNavigateToTasks: () -> Unit,
-    modifier: Modifier = Modifier
+    viewModel: MainViewModel,
+    onNavigateToTimer: (Subject?) -> Unit
 ) {
-    val todayMs = remember {
-        val cal = Calendar.getInstance().apply {
-            set(Calendar.HOUR_OF_DAY, 0)
-            set(Calendar.MINUTE, 0)
-            set(Calendar.SECOND, 0)
-            set(Calendar.MILLISECOND, 0)
-        }
-        cal.timeInMillis
-    }
+    val subjects by viewModel.subjects.collectAsState()
+    val tasks by viewModel.tasks.collectAsState()
+    val sessions by viewModel.studySessions.collectAsState()
 
-    val todaySessions = remember(sessions) {
-        sessions.filter { it.timestamp >= todayMs }
-    }
+    val totalStudyMinutes = remember(sessions) { sessions.sumOf { it.durationMinutes } }
+    val completedTasksCount = remember(tasks) { tasks.count { it.isCompleted } }
 
-    val todayStudyMinutes = remember(todaySessions) {
-        todaySessions.sumOf { it.durationSeconds } / 60
-    }
-
-    val targetDailyMinutes = remember(userProfile) {
-        ((userProfile?.targetDailyHours ?: 3.0f) * 60).toInt()
-    }
-
-    val focusHoursFormatted = remember(todayStudyMinutes) {
-        String.format("%.1f", todayStudyMinutes / 60f)
-    }
-
-    val goalPercentage = remember(todayStudyMinutes, targetDailyMinutes) {
-        if (targetDailyMinutes > 0) {
-            ((todayStudyMinutes.toFloat() / targetDailyMinutes.toFloat()) * 100).toInt().coerceIn(0, 100)
-        } else 0
-    }
-
-    val userNameFirst = remember(userProfile) {
-        userProfile?.name?.trim()?.split(" ")?.firstOrNull() ?: "Mithi"
-    }
-
-    val currentDateStr = remember {
-        SimpleDateFormat("d MMM, EEEE", Locale.getDefault()).format(Date())
-    }
-
-    LazyColumn(
-        modifier = modifier
-            .fillMaxSize()
-            .testTag("dashboard_screen"),
-        contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(20.dp)
-    ) {
-        item {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 4.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(14.dp)
-                ) {
-                    UserProfileAvatar(
-                        avatarUri = userProfile?.avatarUri ?: "",
-                        name = userNameFirst,
-                        size = 50.dp
-                    )
-
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = {
                     Column {
                         Text(
-                            text = "Hey, $userNameFirst",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.ExtraBold,
-                            color = MaterialTheme.colorScheme.onSurface
+                            text = "Dashboard & Progress",
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold
                         )
                         Text(
-                            text = currentDateStr,
+                            text = "Analytics colored by your custom subject palette",
                             style = MaterialTheme.typography.bodySmall,
-                            fontWeight = FontWeight.Medium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
-                }
-
-                Box {
-                    Surface(
-                        shape = CircleShape,
-                        color = MaterialTheme.colorScheme.surface,
-                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
-                        modifier = Modifier
-                            .size(44.dp)
-                            .iosClickable { onNavigateToTimer() }
-                    ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Icon(
-                                imageVector = Icons.Outlined.Notifications,
-                                contentDescription = "Notifications",
-                                tint = MaterialTheme.colorScheme.onSurface,
-                                modifier = Modifier.size(22.dp)
-                            )
-                        }
+                },
+                actions = {
+                    IconButton(onClick = { onNavigateToTimer(null) }) {
+                        Icon(Icons.Default.PlayArrow, contentDescription = "Start Quick Focus", tint = MaterialTheme.colorScheme.primary)
                     }
-                    Box(
-                        modifier = Modifier
-                            .size(10.dp)
-                            .clip(CircleShape)
-                            .background(Color(0xFFEF4444))
-                            .align(Alignment.TopEnd)
-                    )
-                }
-            }
-        }
-
-        item {
-            MotivationalQuoteCard(
-                quote = quoteUiState?.quote,
-                isLoading = quoteUiState?.isLoading ?: false,
-                onRefreshQuote = {
-                    val activeSubjectName = subjects.firstOrNull()?.name
-                    onRefreshQuote?.invoke(activeSubjectName)
                 }
             )
         }
-
-        item {
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Text(
-                    text = "Continue learning",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-
-                Card(
-                    shape = RoundedCornerShape(32.dp),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .iosClickable { onNavigateToTimer() }
+    ) { padding ->
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .padding(horizontal = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+            contentPadding = PaddingValues(bottom = 88.dp, top = 8.dp)
+        ) {
+            // Stats Overview Cards Row
+            item {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .background(
-                                Brush.horizontalGradient(
-                                    colors = listOf(MagentaGradientStart, MagentaGradientEnd)
-                                )
-                            )
-                            .padding(22.dp)
-                    ) {
-                        Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.Top
-                            ) {
-                                Column {
-                                    Text(
-                                        text = "Chemistry",
-                                        style = MaterialTheme.typography.headlineSmall,
-                                        fontWeight = FontWeight.ExtraBold,
-                                        color = Color.White
-                                    )
-                                    Text(
-                                        text = "Chapter 8",
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        fontWeight = FontWeight.Medium,
-                                        color = Color.White.copy(alpha = 0.9f)
-                                    )
-                                }
+                    MetricStatCard(
+                        title = "Total Focus",
+                        value = "${totalStudyMinutes / 60}h ${totalStudyMinutes % 60}m",
+                        subtitle = "${sessions.size} sessions",
+                        icon = Icons.Default.Timer,
+                        containerColor = MaterialTheme.colorScheme.primaryContainer,
+                        modifier = Modifier.weight(1f)
+                    )
 
-                                Surface(
-                                    shape = CircleShape,
-                                    color = Color.White.copy(alpha = 0.25f),
-                                    contentColor = Color.White
+                    MetricStatCard(
+                        title = "Tasks Done",
+                        value = "$completedTasksCount / ${tasks.size}",
+                        subtitle = "Checklist progress",
+                        icon = Icons.Default.CheckCircle,
+                        containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+            }
+
+            // Subject Distribution Chart Section
+            item {
+                Card(
+                    shape = RoundedCornerShape(20.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(
+                        modifier = Modifier.padding(20.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "Study Distribution by Subject",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+
+                            Icon(
+                                imageVector = Icons.Default.BarChart,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        }
+
+                        if (subjects.isEmpty()) {
+                            Text(
+                                text = "No subjects configured. Add subjects to see color charts.",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        } else {
+                            // Stacked Subject Color Bar Chart
+                            val totalSessionMins = totalStudyMinutes.coerceAtLeast(1)
+
+                            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                // Multi-segment colored progress bar
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(24.dp)
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .background(MaterialTheme.colorScheme.surfaceVariant)
                                 ) {
-                                    Row(
-                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                                    ) {
+                                    subjects.forEach { subject ->
+                                        val subMinutes = sessions
+                                            .filter { it.subjectId == subject.id }
+                                            .sumOf { it.durationMinutes }
+                                        val weight = (subMinutes.toFloat() / totalSessionMins).coerceAtLeast(0.01f)
+
                                         Box(
                                             modifier = Modifier
-                                                .size(16.dp)
-                                                .clip(CircleShape)
-                                                .background(Color.White),
-                                            contentAlignment = Alignment.Center
-                                        ) {
-                                            Text(
-                                                text = "J",
-                                                style = MaterialTheme.typography.labelSmall,
-                                                fontWeight = FontWeight.Bold,
-                                                color = MagentaGradientStart,
-                                                fontSize = 10.sp
-                                            )
-                                        }
-                                        Text(
-                                            text = "Jhon ronas",
-                                            style = MaterialTheme.typography.labelSmall,
-                                            fontWeight = FontWeight.SemiBold,
-                                            color = Color.White
+                                                .fillMaxHeight()
+                                                .weight(weight)
+                                                .background(subject.toColor())
                                         )
                                     }
                                 }
+
+                                // Legend with Subject Swatches
+                                LazyRow(
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    items(subjects) { subject ->
+                                        val subMinutes = sessions
+                                            .filter { it.subjectId == subject.id }
+                                            .sumOf { it.durationMinutes }
+                                        val subjectColor = subject.toColor()
+
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                        ) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(12.dp)
+                                                    .clip(CircleShape)
+                                                    .background(subjectColor)
+                                            )
+                                            Text(
+                                                text = "${subject.name}: ${subMinutes}m",
+                                                style = MaterialTheme.typography.labelMedium,
+                                                fontWeight = FontWeight.Medium
+                                            )
+                                        }
+                                    }
+                                }
                             }
+                        }
+                    }
+                }
+            }
 
-                            Text(
-                                text = "15 Classes  •  3 lefts",
-                                style = MaterialTheme.typography.bodySmall,
-                                fontWeight = FontWeight.Medium,
-                                color = Color.White.copy(alpha = 0.95f)
-                            )
+            // Subject Goal Progress Cards List
+            item {
+                Text(
+                    text = "Weekly Goal Progress per Subject",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(top = 8.dp)
+                )
+            }
 
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(8.dp)
-                                    .clip(CircleShape)
-                                    .background(Color.White.copy(alpha = 0.35f))
+            items(subjects, key = { it.id }) { subject ->
+                val subjectColor = subject.toColor()
+                val subLoggedMinutes = sessions
+                    .filter { it.subjectId == subject.id }
+                    .sumOf { it.durationMinutes }
+                val targetMins = subject.targetMinutesPerWeek.coerceAtLeast(1)
+                val progressFraction = (subLoggedMinutes.toFloat() / targetMins).coerceIn(0f, 1f)
+
+                Card(
+                    shape = RoundedCornerShape(18.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                    border = BorderStroke(1.5.dp, subjectColor.copy(alpha = 0.6f)),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(10.dp)
                             ) {
                                 Box(
                                     modifier = Modifier
-                                        .fillMaxHeight()
-                                        .fillMaxWidth(0.80f)
+                                        .size(16.dp)
                                         .clip(CircleShape)
-                                        .background(Color.White)
+                                        .background(subjectColor)
+                                )
+                                Text(
+                                    text = subject.name,
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold
                                 )
                             }
-                        }
-                    }
-                }
-            }
-        }
 
-        item {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(14.dp)
-            ) {
-                Card(
-                    shape = RoundedCornerShape(28.dp),
-                    colors = CardDefaults.cardColors(containerColor = PastelSkyBlue.copy(alpha = 0.85f)),
-                    modifier = Modifier
-                        .weight(1f)
-                        .iosClickable { onNavigateToSubjects() }
-                ) {
-                    Column(
-                        modifier = Modifier.padding(18.dp),
-                        verticalArrangement = Arrangement.spacedBy(10.dp)
-                    ) {
-                        Text(
-                            text = "Biology",
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.ExtraBold,
-                            color = OnPastelSkyBlue
+                            Button(
+                                onClick = { onNavigateToTimer(subject) },
+                                colors = ButtonDefaults.buttonColors(containerColor = subjectColor),
+                                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+                                modifier = Modifier.height(32.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.PlayArrow,
+                                    contentDescription = null,
+                                    tint = Color.White,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("Focus", style = MaterialTheme.typography.labelMedium, color = Color.White)
+                            }
+                        }
+
+                        // Subject Custom Color Progress Bar
+                        LinearProgressIndicator(
+                            progress = { progressFraction },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(10.dp)
+                                .clip(RoundedCornerShape(5.dp)),
+                            color = subjectColor,
+                            trackColor = subjectColor.copy(alpha = 0.2f)
                         )
 
-                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(
-                                    imageVector = Icons.Outlined.Book,
-                                    contentDescription = null,
-                                    tint = OnPastelSkyBlue,
-                                    modifier = Modifier.size(16.dp)
-                                )
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text(
-                                    text = "Lesson 20",
-                                    style = MaterialTheme.typography.labelMedium,
-                                    fontWeight = FontWeight.Bold,
-                                    color = OnPastelSkyBlue
-                                )
-                            }
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(
-                                    imageVector = Icons.AutoMirrored.Outlined.Assignment,
-                                    contentDescription = null,
-                                    tint = OnPastelSkyBlue,
-                                    modifier = Modifier.size(16.dp)
-                                )
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text(
-                                    text = "Assignment 12",
-                                    style = MaterialTheme.typography.labelMedium,
-                                    fontWeight = FontWeight.Bold,
-                                    color = OnPastelSkyBlue
-                                )
-                            }
-                        }
-
-                        Spacer(modifier = Modifier.height(4.dp))
-
                         Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
                         ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(28.dp)
-                                    .clip(CircleShape)
-                                    .background(OnPastelSkyBlue),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    text = "E",
-                                    style = MaterialTheme.typography.labelMedium,
-                                    fontWeight = FontWeight.Bold,
-                                    color = Color.White
-                                )
-                            }
                             Text(
-                                text = "Emma Jhonson",
-                                style = MaterialTheme.typography.labelSmall,
+                                text = "${subLoggedMinutes}m studied",
+                                style = MaterialTheme.typography.labelMedium,
                                 fontWeight = FontWeight.Bold,
-                                color = OnPastelSkyBlue,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
+                                color = subjectColor
                             )
-                        }
-                    }
-                }
-
-                Card(
-                    shape = RoundedCornerShape(28.dp),
-                    colors = CardDefaults.cardColors(containerColor = PastelMintGreen.copy(alpha = 0.85f)),
-                    modifier = Modifier
-                        .weight(1f)
-                        .iosClickable { onNavigateToSubjects() }
-                ) {
-                    Column(
-                        modifier = Modifier.padding(18.dp),
-                        verticalArrangement = Arrangement.spacedBy(10.dp)
-                    ) {
-                        Text(
-                            text = "English",
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.ExtraBold,
-                            color = OnPastelMintGreen
-                        )
-
-                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(
-                                    imageVector = Icons.Outlined.Book,
-                                    contentDescription = null,
-                                    tint = OnPastelMintGreen,
-                                    modifier = Modifier.size(16.dp)
-                                )
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text(
-                                    text = "Lesson 17",
-                                    style = MaterialTheme.typography.labelMedium,
-                                    fontWeight = FontWeight.Bold,
-                                    color = OnPastelMintGreen
-                                )
-                            }
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(
-                                    imageVector = Icons.AutoMirrored.Outlined.Assignment,
-                                    contentDescription = null,
-                                    tint = OnPastelMintGreen,
-                                    modifier = Modifier.size(16.dp)
-                                )
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text(
-                                    text = "Assignment 9",
-                                    style = MaterialTheme.typography.labelMedium,
-                                    fontWeight = FontWeight.Bold,
-                                    color = OnPastelMintGreen
-                                )
-                            }
-                        }
-
-                        Spacer(modifier = Modifier.height(4.dp))
-
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(28.dp)
-                                    .clip(CircleShape)
-                                    .background(OnPastelMintGreen),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    text = "M",
-                                    style = MaterialTheme.typography.labelMedium,
-                                    fontWeight = FontWeight.Bold,
-                                    color = Color.White
-                                )
-                            }
                             Text(
-                                text = "Murphy D",
+                                text = "${(progressFraction * 100).toInt()}% of ${targetMins / 60}h goal",
                                 style = MaterialTheme.typography.labelSmall,
-                                fontWeight = FontWeight.Bold,
-                                color = OnPastelMintGreen,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                     }
                 }
             }
-        }
-
-        item {
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "Study group",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                    TextButton(onClick = onNavigateToTasks) {
-                        Text(
-                            text = "Check all",
-                            style = MaterialTheme.typography.labelMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(14.dp)
-                ) {
-                    Card(
-                        shape = RoundedCornerShape(28.dp),
-                        colors = CardDefaults.cardColors(containerColor = PastelSunnyYellow),
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(110.dp)
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .padding(14.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Row(
-                                horizontalArrangement = Arrangement.spacedBy((-8).dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                val avatars = listOf("A", "B", "C", "D", "E")
-                                avatars.forEachIndexed { idx, initial ->
-                                    Box(
-                                        modifier = Modifier
-                                            .size(34.dp)
-                                            .clip(CircleShape)
-                                            .border(2.dp, Color.White, CircleShape)
-                                            .background(
-                                                when (idx % 3) {
-                                                    0 -> Color(0xFF1E293B)
-                                                    1 -> Color(0xFFEC4899)
-                                                    else -> Color(0xFF10B981)
-                                                }
-                                            ),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Text(
-                                            text = initial,
-                                            style = MaterialTheme.typography.labelSmall,
-                                            fontWeight = FontWeight.Bold,
-                                            color = Color.White
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    Card(
-                        shape = RoundedCornerShape(28.dp),
-                        colors = CardDefaults.cardColors(containerColor = Color(0xFF1E293B)),
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(110.dp)
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .padding(14.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Row(
-                                horizontalArrangement = Arrangement.spacedBy((-8).dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                val avatars = listOf("X", "Y", "Z", "+3")
-                                avatars.forEachIndexed { idx, initial ->
-                                    Box(
-                                        modifier = Modifier
-                                            .size(34.dp)
-                                            .clip(CircleShape)
-                                            .border(2.dp, Color.White, CircleShape)
-                                            .background(
-                                                when (idx % 3) {
-                                                    0 -> Color(0xFF3B82F6)
-                                                    1 -> Color(0xFFF59E0B)
-                                                    else -> Color(0xFF8B5CF6)
-                                                }
-                                            ),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Text(
-                                            text = initial,
-                                            style = MaterialTheme.typography.labelSmall,
-                                            fontWeight = FontWeight.Bold,
-                                            color = Color.White
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        item {
-            CircularProgressGoalCard(
-                currentMinutes = todayStudyMinutes,
-                targetMinutes = targetDailyMinutes,
-                title = "Daily Focus Progress"
-            )
         }
     }
 }
 
-
+@Composable
+fun MetricStatCard(
+    title: String,
+    value: String,
+    subtitle: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    containerColor: Color,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = containerColor),
+        modifier = modifier
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.size(28.dp)
+            )
+            Text(
+                text = title,
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Text(
+                text = value,
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Text(
+                text = subtitle,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}

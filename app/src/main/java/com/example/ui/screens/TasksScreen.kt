@@ -2,603 +2,377 @@ package com.example.ui.screens
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
-import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import android.view.HapticFeedbackConstants
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.platform.LocalHapticFeedback
-import androidx.compose.ui.platform.LocalView
-import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import com.example.data.model.Subject
-import com.example.data.model.Task
-import com.example.ui.components.PriorityChip
-import com.example.ui.components.SubjectIcon
+
+import com.example.data.Subject
+import com.example.data.Task
+import com.example.ui.MainViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun TasksScreen(
-    tasks: List<Task>,
-    subjects: List<Subject>,
-    onAddTask: (title: String, description: String, subjectId: Int?, priority: String) -> Unit,
-    onToggleTaskCompleted: (Task) -> Unit,
-    onDeleteTask: (Task) -> Unit,
-    modifier: Modifier = Modifier
-) {
-    var showAddDialog by remember { mutableStateOf(false) }
-    var selectedFilterIndex by remember { mutableIntStateOf(0) }
+fun TasksScreen(viewModel: MainViewModel) {
+    val tasks by viewModel.tasks.collectAsState()
+    val subjects by viewModel.subjects.collectAsState()
 
-    val haptic = LocalHapticFeedback.current
-    val view = LocalView.current
+    var selectedSubjectFilterId by remember { mutableStateOf<String?>(null) }
+    var showAddTaskDialog by remember { mutableStateOf(false) }
 
-    val handleToggleTaskCompleted: (Task) -> Unit = { task ->
-        if (!task.isCompleted) {
-            view.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
-            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+    val filteredTasks = remember(tasks, selectedSubjectFilterId) {
+        if (selectedSubjectFilterId == null) {
+            tasks
         } else {
-            view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
-        }
-        onToggleTaskCompleted(task)
-    }
-
-    val filteredTasks = remember(tasks, selectedFilterIndex) {
-        when (selectedFilterIndex) {
-            1 -> tasks.filter { !it.isCompleted }
-            2 -> tasks.filter { it.isCompleted }
-            else -> tasks
+            tasks.filter { it.subjectId == selectedSubjectFilterId }
         }
     }
 
     Scaffold(
+        topBar = {
+            TopAppBar(
+                title = {
+                    Column {
+                        Text(
+                            text = "Task Checklist",
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = "Organized with subject-assigned colors",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                },
+                actions = {
+                    IconButton(onClick = { showAddTaskDialog = true }) {
+                        Icon(Icons.Default.AddTask, contentDescription = "Add Task", tint = MaterialTheme.colorScheme.primary)
+                    }
+                }
+            )
+        },
         floatingActionButton = {
             FloatingActionButton(
-                onClick = { showAddDialog = true },
-                shape = RoundedCornerShape(20.dp),
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary,
-                modifier = Modifier.testTag("add_task_fab")
+                onClick = { showAddTaskDialog = true },
+                containerColor = MaterialTheme.colorScheme.primary
             ) {
-                Icon(imageVector = Icons.Default.Add, contentDescription = "Add Task")
+                Icon(Icons.Default.Add, contentDescription = "Add Task", tint = Color.White)
             }
-        },
-        modifier = modifier.testTag("tasks_screen")
-    ) { innerPadding ->
+        }
+    ) { padding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding)
+                .padding(padding)
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp)
-            ) {
-                Row(
+            // Subject Filter Bar with assigned subject colors!
+            if (subjects.isNotEmpty()) {
+                LazyRow(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Column {
-                        Text(
-                            text = "STUDY GROUP & TASKS",
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.Bold,
-                            letterSpacing = 1.2.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Text(
-                            text = "Today's task",
-                            style = MaterialTheme.typography.headlineSmall,
-                            fontWeight = FontWeight.ExtraBold,
-                            color = MaterialTheme.colorScheme.onBackground
+                    item {
+                        FilterChip(
+                            selected = selectedSubjectFilterId == null,
+                            onClick = { selectedSubjectFilterId = null },
+                            label = { Text("All Subjects (${tasks.size})") }
                         )
                     }
+                    items(subjects, key = { it.id }) { subject ->
+                        val isSelected = selectedSubjectFilterId == subject.id
+                        val subjectColor = subject.toColor()
 
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Surface(
-                            shape = CircleShape,
-                            color = MaterialTheme.colorScheme.surface,
-                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
-                            modifier = Modifier.size(38.dp)
-                        ) {
-                            Box(contentAlignment = Alignment.Center) {
-                                Icon(
-                                    imageVector = Icons.Outlined.Group,
-                                    contentDescription = "Group",
-                                    tint = MaterialTheme.colorScheme.onSurface,
-                                    modifier = Modifier.size(18.dp)
+                        FilterChip(
+                            selected = isSelected,
+                            onClick = {
+                                selectedSubjectFilterId = if (isSelected) null else subject.id
+                            },
+                            label = {
+                                Text(
+                                    text = subject.name,
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
                                 )
-                            }
-                        }
-                        Surface(
-                            shape = CircleShape,
-                            color = MaterialTheme.colorScheme.surface,
-                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
-                            modifier = Modifier.size(38.dp)
-                        ) {
-                            Box(contentAlignment = Alignment.Center) {
-                                Icon(
-                                    imageVector = Icons.Outlined.Search,
-                                    contentDescription = "Search",
-                                    tint = MaterialTheme.colorScheme.onSurface,
-                                    modifier = Modifier.size(18.dp)
+                            },
+                            leadingIcon = {
+                                Box(
+                                    modifier = Modifier
+                                        .size(12.dp)
+                                        .clip(CircleShape)
+                                        .background(subjectColor)
                                 )
-                            }
-                        }
-                    }
-                }
-            }
-
-            SingleChoiceSegmentedButtonRow(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 4.dp)
-            ) {
-                val filters = listOf("All (${tasks.size})", "Pending", "Done")
-                filters.forEachIndexed { index, title ->
-                    SegmentedButton(
-                        selected = selectedFilterIndex == index,
-                        onClick = { selectedFilterIndex = index },
-                        shape = SegmentedButtonDefaults.itemShape(index = index, count = filters.size),
-                        colors = SegmentedButtonDefaults.colors(
-                            activeContainerColor = MaterialTheme.colorScheme.primaryContainer,
-                            activeContentColor = MaterialTheme.colorScheme.onPrimaryContainer
-                        )
-                    ) {
-                        Text(
-                            text = title,
-                            style = MaterialTheme.typography.labelMedium,
-                            fontWeight = if (selectedFilterIndex == index) FontWeight.Bold else FontWeight.Medium
+                            },
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = subjectColor,
+                                selectedLabelColor = Color.White
+                            )
                         )
                     }
                 }
             }
 
-            LazyColumn(
-                contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 80.dp),
-                verticalArrangement = Arrangement.spacedBy(14.dp)
-            ) {
-                items(filteredTasks, key = { it.id }) { task ->
-                    val subject = subjects.find { it.id == task.subjectId }
-
-                    Card(
-                        shape = RoundedCornerShape(24.dp),
-                        colors = CardDefaults.cardColors(
-                            containerColor = if (task.isCompleted)
-                                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-                            else MaterialTheme.colorScheme.surface
-                        ),
-                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .animateItem()
+            if (filteredTasks.isEmpty()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        Row(
-                            modifier = Modifier
-                                .padding(14.dp)
-                                .fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Checkbox(
-                                checked = task.isCompleted,
-                                onCheckedChange = { handleToggleTaskCompleted(task) }
-                            )
-
-                            Spacer(modifier = Modifier.width(8.dp))
-
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    text = task.title,
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.Bold,
-                                    textDecoration = if (task.isCompleted) TextDecoration.LineThrough else TextDecoration.None,
-                                    color = if (task.isCompleted) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
-                                )
-
-                                if (task.description.isNotBlank()) {
-                                    Text(
-                                        text = task.description,
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis
-                                    )
-                                }
-                            }
-
-                            Spacer(modifier = Modifier.width(8.dp))
-
-            Button(
-                onClick = { handleToggleTaskCompleted(task) },
-                shape = CircleShape,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFF3B82F6),
-                    contentColor = Color.White
-                ),
-                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 6.dp),
-                modifier = Modifier.height(34.dp)
-            ) {
-                                Text(
-                                    text = if (task.isCompleted) "Done" else "Details",
-                                    style = MaterialTheme.typography.labelMedium,
-                                    fontWeight = FontWeight.Bold
-                                )
-                            }
+                        Icon(
+                            imageVector = Icons.Default.Checklist,
+                            contentDescription = null,
+                            modifier = Modifier.size(64.dp),
+                            tint = MaterialTheme.colorScheme.outline
+                        )
+                        Text(
+                            text = "No tasks found",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Button(onClick = { showAddTaskDialog = true }) {
+                            Text("Create Task")
                         }
                     }
                 }
-
-                item {
-                    Spacer(modifier = Modifier.height(6.dp))
-                    Card(
-                        shape = RoundedCornerShape(28.dp),
-                        colors = CardDefaults.cardColors(containerColor = Color(0xFFD1E9FF)),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Column(
-                            modifier = Modifier.padding(18.dp),
-                            verticalArrangement = Arrangement.spacedBy(10.dp)
-                        ) {
-                            Surface(
-                                shape = CircleShape,
-                                color = Color.White,
-                                modifier = Modifier.height(28.dp)
-                            ) {
-                                Row(
-                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                                ) {
-                                    Box(
-                                        modifier = Modifier
-                                            .size(8.dp)
-                                            .clip(CircleShape)
-                                            .background(Color(0xFFEF4444))
-                                    )
-                                    Text(
-                                        text = "Live",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        fontWeight = FontWeight.Bold,
-                                        color = Color(0xFFEF4444)
-                                    )
-                                    Text(
-                                        text = "07:23 min",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        fontWeight = FontWeight.Medium,
-                                        color = Color(0xFF1E293B)
-                                    )
-                                }
-                            }
-
-                            Column {
-                                Text(
-                                    text = "Biology",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    fontWeight = FontWeight.Bold,
-                                    color = Color(0xFF0284C7)
-                                )
-                                Text(
-                                    text = "Human Digestive System",
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.ExtraBold,
-                                    color = Color(0xFF0F172A)
-                                )
-                            }
-
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                ) {
-                                    Box(
-                                        modifier = Modifier
-                                            .size(28.dp)
-                                            .clip(CircleShape)
-                                            .background(Color(0xFF0284C7)),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Text(
-                                            text = "D",
-                                            style = MaterialTheme.typography.labelMedium,
-                                            fontWeight = FontWeight.Bold,
-                                            color = Color.White
-                                        )
-                                    }
-                                    Column {
-                                        Text(
-                                            text = "Host",
-                                            style = MaterialTheme.typography.labelSmall,
-                                            fontSize = 9.sp,
-                                            color = Color(0xFF64748B)
-                                        )
-                                        Text(
-                                            text = "Devis Thomson",
-                                            style = MaterialTheme.typography.labelSmall,
-                                            fontWeight = FontWeight.Bold,
-                                            color = Color(0xFF0F172A)
-                                        )
-                                    }
-                                }
-
-                                Surface(
-                                    shape = CircleShape,
-                                    color = Color.White.copy(alpha = 0.8f),
-                                    modifier = Modifier.height(26.dp)
-                                ) {
-                                    Row(
-                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 2.dp),
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(4.dp)
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Outlined.Visibility,
-                                            contentDescription = null,
-                                            tint = Color(0xFF334155),
-                                            modifier = Modifier.size(12.dp)
-                                        )
-                                        Text(
-                                            text = "17 Going",
-                                            style = MaterialTheme.typography.labelSmall,
-                                            fontWeight = FontWeight.Bold,
-                                            fontSize = 11.sp,
-                                            color = Color(0xFF334155)
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-
-                item {
-                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = "Upcoming discussion",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                            Button(
-                                onClick = { showAddDialog = true },
-                                shape = CircleShape,
-                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4F46E5)),
-                                contentPadding = PaddingValues(horizontal = 14.dp, vertical = 4.dp),
-                                modifier = Modifier.height(32.dp)
-                            ) {
-                                Text("+ Request", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
-                            }
-                        }
-
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
-                            Card(
-                                shape = RoundedCornerShape(26.dp),
-                                colors = CardDefaults.cardColors(containerColor = Color(0xFFFFE082)),
-                                modifier = Modifier.weight(1f)
-                            ) {
-                                Column(
-                                    modifier = Modifier.padding(14.dp),
-                                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                                ) {
-                                    Text(
-                                        text = "Chemistry",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        fontWeight = FontWeight.Bold,
-                                        color = Color(0xFFB45309)
-                                    )
-                                    Text(
-                                        text = "Periodic table",
-                                        style = MaterialTheme.typography.titleMedium,
-                                        fontWeight = FontWeight.Bold,
-                                        color = Color(0xFF78350F)
-                                    )
-                                    Text(
-                                        text = "📅 3 Aug  •  ⏰ 7:30 PM",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        fontSize = 10.sp,
-                                        color = Color(0xFF92400E)
-                                    )
-                                    Button(
-                                        onClick = { },
-                                        shape = CircleShape,
-                                        colors = ButtonDefaults.buttonColors(
-                                            containerColor = Color(0xFFF59E0B),
-                                            contentColor = Color.White
-                                        ),
-                                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .height(32.dp)
-                                    ) {
-                                        Text("Set Reminder", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
-                                    }
-                                }
-                            }
-
-                            Card(
-                                shape = RoundedCornerShape(26.dp),
-                                colors = CardDefaults.cardColors(containerColor = Color(0xFFA5D6A7)),
-                                modifier = Modifier.weight(1f)
-                            ) {
-                                Column(
-                                    modifier = Modifier.padding(14.dp),
-                                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                                ) {
-                                    Text(
-                                        text = "Physics",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        fontWeight = FontWeight.Bold,
-                                        color = Color(0xFF15803D)
-                                    )
-                                    Text(
-                                        text = "Thermodynamics",
-                                        style = MaterialTheme.typography.titleMedium,
-                                        fontWeight = FontWeight.Bold,
-                                        color = Color(0xFF14532D)
-                                    )
-                                    Text(
-                                        text = "📅 3 Aug  •  ⏰ 7:30 PM",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        fontSize = 10.sp,
-                                        color = Color(0xFF166534)
-                                    )
-                                    Button(
-                                        onClick = { },
-                                        shape = CircleShape,
-                                        colors = ButtonDefaults.buttonColors(
-                                            containerColor = Color(0xFF10B981),
-                                            contentColor = Color.White
-                                        ),
-                                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .height(32.dp)
-                                    ) {
-                                        Text("Set Reminder", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
-                                    }
-                                }
-                            }
-                        }
+            } else {
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f)
+                        .padding(horizontal = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                    contentPadding = PaddingValues(bottom = 88.dp, top = 8.dp)
+                ) {
+                    items(filteredTasks, key = { it.id }) { task ->
+                        TaskItemRow(
+                            task = task,
+                            onToggleComplete = { viewModel.toggleTaskCompleted(task) },
+                            onDelete = { viewModel.deleteTask(task) }
+                        )
                     }
                 }
             }
         }
     }
 
-    if (showAddDialog) {
+    if (showAddTaskDialog) {
         AddTaskDialog(
             subjects = subjects,
-            onDismiss = { showAddDialog = false },
-            onConfirm = { title, description, subjectId, priority ->
-                onAddTask(title, description, subjectId, priority)
-                showAddDialog = false
+            onDismiss = { showAddTaskDialog = false },
+            onAddTask = { title, selectedSub, dueDate, estMins ->
+                viewModel.addTask(title, selectedSub, dueDate, estMins)
+                showAddTaskDialog = false
             }
         )
     }
 }
 
+@Composable
+fun TaskItemRow(
+    task: Task,
+    onToggleComplete: () -> Unit,
+    onDelete: () -> Unit
+) {
+    val subjectColor = task.toSubjectColor()
 
-@OptIn(ExperimentalMaterial3Api::class)
+    Card(
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = if (task.isCompleted)
+                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+            else
+                MaterialTheme.colorScheme.surface
+        ),
+        border = BorderStroke(
+            width = 1.5.dp,
+            color = if (task.isCompleted) subjectColor.copy(alpha = 0.3f) else subjectColor.copy(alpha = 0.8f)
+        ),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Row(
+            modifier = Modifier
+                .padding(14.dp)
+                .fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            // Subject Color Left Accent Line / Pill
+            Box(
+                modifier = Modifier
+                    .width(6.dp)
+                    .height(36.dp)
+                    .clip(RoundedCornerShape(3.dp))
+                    .background(subjectColor)
+            )
+
+            Checkbox(
+                checked = task.isCompleted,
+                onCheckedChange = { onToggleComplete() },
+                colors = CheckboxDefaults.colors(
+                    checkedColor = subjectColor,
+                    uncheckedColor = subjectColor
+                )
+            )
+
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = task.title,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    textDecoration = if (task.isCompleted) TextDecoration.LineThrough else TextDecoration.None,
+                    color = if (task.isCompleted) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f) else MaterialTheme.colorScheme.onSurface
+                )
+
+                Spacer(modifier = Modifier.height(4.dp))
+
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    // Subject Name Tag in Subject Color
+                    Surface(
+                        shape = RoundedCornerShape(6.dp),
+                        color = subjectColor.copy(alpha = 0.15f)
+                    ) {
+                        Text(
+                            text = task.subjectName,
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = subjectColor,
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                        )
+                    }
+
+                    Text(
+                        text = "• ${task.dueDate} • ${task.estimatedMinutes}m",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+
+            IconButton(onClick = onDelete) {
+                Icon(
+                    imageVector = Icons.Default.Close,
+                    contentDescription = "Delete Task",
+                    tint = MaterialTheme.colorScheme.outline
+                )
+            }
+        }
+    }
+}
+
 @Composable
 fun AddTaskDialog(
     subjects: List<Subject>,
     onDismiss: () -> Unit,
-    onConfirm: (title: String, description: String, subjectId: Int?, priority: String) -> Unit
+    onAddTask: (title: String, subject: Subject, dueDate: String, estMins: Int) -> Unit
 ) {
     var title by remember { mutableStateOf("") }
-    var description by remember { mutableStateOf("") }
-    var selectedSubjectId by remember { mutableStateOf<Int?>(subjects.firstOrNull()?.id) }
-    var selectedPriority by remember { mutableStateOf("Medium") }
+    var selectedSubject by remember { mutableStateOf(subjects.firstOrNull()) }
+    var dueDate by remember { mutableStateOf("Today") }
+    var estMinsText by remember { mutableStateOf("30") }
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(text = "Add Study Task", fontWeight = FontWeight.Bold) },
+        title = {
+            Text(
+                text = "New Study Task",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold
+            )
+        },
         text = {
             Column(
-                verticalArrangement = Arrangement.spacedBy(14.dp),
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {
                 OutlinedTextField(
                     value = title,
                     onValueChange = { title = it },
-                    label = { Text("Task Title") },
+                    label = { Text("Task Description") },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
 
-                OutlinedTextField(
-                    value = description,
-                    onValueChange = { description = it },
-                    label = { Text("Details / Subtasks (Optional)") },
-                    modifier = Modifier.fillMaxWidth()
+                Text(
+                    text = "Select Subject:",
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.Bold
                 )
 
-                if (subjects.isNotEmpty()) {
-                    Text(
-                        text = "Related Subject",
-                        style = MaterialTheme.typography.labelLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
-                        subjects.take(3).forEachIndexed { index, subject ->
-                            SegmentedButton(
-                                selected = selectedSubjectId == subject.id,
-                                onClick = { selectedSubjectId = subject.id },
-                                shape = SegmentedButtonDefaults.itemShape(index = index, count = subjects.take(3).size)
-                            ) {
-                                Text(
-                                    text = subject.name,
-                                    style = MaterialTheme.typography.labelSmall,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
+                LazyRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    items(subjects) { sub ->
+                        val isSel = selectedSubject?.id == sub.id
+                        val subColor = sub.toColor()
+
+                        FilterChip(
+                            selected = isSel,
+                            onClick = { selectedSubject = sub },
+                            label = { Text(sub.name) },
+                            leadingIcon = {
+                                Box(
+                                    modifier = Modifier
+                                        .size(12.dp)
+                                        .clip(CircleShape)
+                                        .background(subColor)
                                 )
-                            }
-                        }
+                            },
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = subColor,
+                                selectedLabelColor = Color.White
+                            )
+                        )
                     }
                 }
 
-                Text(
-                    text = "Priority Level",
-                    style = MaterialTheme.typography.labelLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
-                    val priorities = listOf("Low", "Medium", "High")
-                    priorities.forEachIndexed { index, prio ->
-                        SegmentedButton(
-                            selected = selectedPriority == prio,
-                            onClick = { selectedPriority = prio },
-                            shape = SegmentedButtonDefaults.itemShape(index = index, count = priorities.size)
-                        ) {
-                            Text(text = prio, style = MaterialTheme.typography.labelSmall)
-                        }
-                    }
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedTextField(
+                        value = dueDate,
+                        onValueChange = { dueDate = it },
+                        label = { Text("Due Date") },
+                        modifier = Modifier.weight(1f)
+                    )
+
+                    OutlinedTextField(
+                        value = estMinsText,
+                        onValueChange = { estMinsText = it.filter { c -> c.isDigit() } },
+                        label = { Text("Mins") },
+                        modifier = Modifier.weight(0.8f)
+                    )
                 }
             }
         },
         confirmButton = {
             Button(
                 onClick = {
-                    if (title.isNotBlank()) {
-                        onConfirm(title, description, selectedSubjectId, selectedPriority)
+                    val sub = selectedSubject
+                    if (title.isNotBlank() && sub != null) {
+                        onAddTask(title.trim(), sub, dueDate, estMinsText.toIntOrNull() ?: 30)
                     }
                 },
-                enabled = title.isNotBlank()
+                enabled = title.isNotBlank() && selectedSubject != null
             ) {
                 Text("Add Task")
             }

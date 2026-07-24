@@ -2,139 +2,115 @@ package com.example.ui.screens
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
-import androidx.compose.material.icons.automirrored.filled.LibraryBooks
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import com.example.data.model.Subject
-import com.example.ui.components.IconPickerRow
-import com.example.ui.components.SubjectColorPickerRow
-import com.example.ui.components.SubjectIcon
-import com.example.ui.components.iosClickable
-import com.example.ui.theme.SubjectColors
+
+import com.example.data.Subject
+import com.example.ui.MainViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SubjectsScreen(
-    subjects: List<Subject>,
-    onAddSubject: (name: String, category: String, colorHex: Long, targetMinutes: Int, iconName: String) -> Unit,
-    onUpdateSubject: (Subject) -> Unit,
-    onDeleteSubject: (Subject) -> Unit,
-    onLogManualTime: (subjectId: Int, durationMinutes: Int, notes: String) -> Unit,
-    modifier: Modifier = Modifier
+    viewModel: MainViewModel,
+    onNavigateToTimer: (Subject) -> Unit
 ) {
+    val subjects by viewModel.subjects.collectAsState()
     var showAddDialog by remember { mutableStateOf(false) }
-    var subjectToEdit by remember { mutableStateOf<Subject?>(null) }
-    var subjectToLogTime by remember { mutableStateOf<Subject?>(null) }
+    var editingSubject by remember { mutableStateOf<Subject?>(null) }
 
     Scaffold(
+        topBar = {
+            TopAppBar(
+                title = {
+                    Column {
+                        Text(
+                            text = "Subjects & Color Management",
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = "Assign unique colors to personalize your checklist & charts",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                },
+                actions = {
+                    IconButton(onClick = { showAddDialog = true }) {
+                        Icon(Icons.Default.AddCircle, contentDescription = "Add Subject", tint = MaterialTheme.colorScheme.primary)
+                    }
+                }
+            )
+        },
         floatingActionButton = {
             FloatingActionButton(
                 onClick = { showAddDialog = true },
-                shape = RoundedCornerShape(20.dp),
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary,
-                modifier = Modifier.testTag("add_subject_fab")
+                containerColor = MaterialTheme.colorScheme.primary
             ) {
-                Icon(imageVector = Icons.Default.Add, contentDescription = "Add Subject")
+                Icon(Icons.Default.Add, contentDescription = "Add New Subject", tint = Color.White)
             }
-        },
-        modifier = modifier.testTag("subjects_screen")
-    ) { innerPadding ->
+        }
+    ) { padding ->
         if (subjects.isEmpty()) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(innerPadding),
+                    .padding(padding),
                 contentAlignment = Alignment.Center
             ) {
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier.padding(24.dp)
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    Surface(
-                        shape = CircleShape,
-                        color = MaterialTheme.colorScheme.primaryContainer,
-                        modifier = Modifier.size(80.dp)
-                    ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Filled.LibraryBooks,
-                                contentDescription = "No Subjects",
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(36.dp)
-                            )
-                        }
-                    }
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Icon(
+                        imageVector = Icons.Default.Palette,
+                        contentDescription = null,
+                        modifier = Modifier.size(64.dp),
+                        tint = MaterialTheme.colorScheme.outline
+                    )
                     Text(
-                        text = "No Subjects Added Yet",
+                        text = "No subjects added yet",
                         style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface
+                        fontWeight = FontWeight.Bold
                     )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = "Tap the + button below to create your first study subject.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                    Button(onClick = { showAddDialog = true }) {
+                        Text("Add Subject & Pick Color")
+                    }
                 }
             }
         } else {
             LazyColumn(
-                contentPadding = PaddingValues(
-                    top = innerPadding.calculateTopPadding() + 16.dp,
-                    bottom = innerPadding.calculateBottomPadding() + 80.dp,
-                    start = 16.dp,
-                    end = 16.dp
-                ),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding)
+                    .padding(horizontal = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
-                modifier = Modifier.fillMaxSize()
+                contentPadding = PaddingValues(bottom = 88.dp, top = 8.dp)
             ) {
-                item {
-                    Column {
-                        Text(
-                            text = "ACADEMIC CURRICULUM",
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.Bold,
-                            letterSpacing = 1.2.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Text(
-                            text = "Enrolled Subjects (${subjects.size})",
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onBackground
-                        )
-                    }
-                }
-
-                items(
-                    items = subjects,
-                    key = { it.id }
-                ) { subject ->
-                    SubjectCard(
+                items(subjects, key = { it.id }) { subject ->
+                    SubjectCardItem(
                         subject = subject,
-                        onEdit = { subjectToEdit = subject },
-                        onDelete = { onDeleteSubject(subject) },
-                        onLogTime = { subjectToLogTime = subject },
-                        modifier = Modifier.animateItem()
+                        onEditColor = { editingSubject = subject },
+                        onStartFocus = { onNavigateToTimer(subject) },
+                        onDelete = { viewModel.deleteSubject(subject) }
                     )
                 }
             }
@@ -142,283 +118,164 @@ fun SubjectsScreen(
     }
 
     if (showAddDialog) {
-        SubjectDialog(
-            title = "Add New Subject",
-            initialName = "",
-            initialCategory = "STEM",
-            initialColorHex = SubjectColors.first(),
-            initialTargetMins = 60,
-            initialIconName = "Book",
+        SubjectEditDialog(
+            subjectToEdit = null,
             onDismiss = { showAddDialog = false },
-            onConfirm = { name, category, colorHex, targetMins, iconName ->
-                onAddSubject(name, category, colorHex, targetMins, iconName)
+            onSave = { name, colorHex, targetMins ->
+                viewModel.addSubject(name, colorHex, targetMins)
                 showAddDialog = false
             }
         )
     }
 
-    subjectToEdit?.let { subject ->
-        SubjectDialog(
-            title = "Edit Subject",
-            initialName = subject.name,
-            initialCategory = subject.category,
-            initialColorHex = subject.colorHex,
-            initialTargetMins = subject.targetDailyMinutes,
-            initialIconName = subject.iconName,
-            onDismiss = { subjectToEdit = null },
-            onConfirm = { name, category, colorHex, targetMins, iconName ->
-                onUpdateSubject(
-                    subject.copy(
-                        name = name,
-                        category = category,
-                        colorHex = colorHex,
-                        targetDailyMinutes = targetMins,
-                        iconName = iconName
-                    )
-                )
-                subjectToEdit = null
-            }
-        )
-    }
-
-    subjectToLogTime?.let { subject ->
-        LogTimeDialog(
-            subjectName = subject.name,
-            onDismiss = { subjectToLogTime = null },
-            onConfirm = { minutes, notes ->
-                onLogManualTime(subject.id, minutes, notes)
-                subjectToLogTime = null
+    editingSubject?.let { subject ->
+        SubjectEditDialog(
+            subjectToEdit = subject,
+            onDismiss = { editingSubject = null },
+            onSave = { name, colorHex, targetMins ->
+                viewModel.updateSubject(subject.copy(name = name, colorHex = colorHex, targetMinutesPerWeek = targetMins))
+                editingSubject = null
             }
         )
     }
 }
 
 @Composable
-fun SubjectCard(
+fun SubjectCardItem(
     subject: Subject,
-    onEdit: () -> Unit,
-    onDelete: () -> Unit,
-    onLogTime: () -> Unit,
-    modifier: Modifier = Modifier
+    onEditColor: () -> Unit,
+    onStartFocus: () -> Unit,
+    onDelete: () -> Unit
 ) {
-    val color = Color(subject.colorHex)
-    var isExpanded by remember { mutableStateOf(false) }
+    val subjectColor = subject.toColor()
 
     Card(
-        shape = RoundedCornerShape(28.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-        modifier = modifier
-            .fillMaxWidth()
-            .iosClickable { isExpanded = !isExpanded }
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)),
+        border = BorderStroke(2.dp, subjectColor.copy(alpha = 0.7f)),
+        modifier = Modifier.fillMaxWidth()
     ) {
-        Column(modifier = Modifier.padding(18.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+        Row(
+            modifier = Modifier
+                .padding(16.dp)
+                .fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            // Subject Color Swatch & Icon
+            Box(
+                modifier = Modifier
+                    .size(52.dp)
+                    .clip(CircleShape)
+                    .background(subjectColor),
+                contentAlignment = Alignment.Center
             ) {
+                Icon(
+                    imageVector = Icons.Default.Book,
+                    contentDescription = null,
+                    tint = Color.White,
+                    modifier = Modifier.size(26.dp)
+                )
+            }
+
+            Column(modifier = Modifier.weight(1f)) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.weight(1f)
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
+                    Text(
+                        text = subject.name,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+
+                    // Color tag chip
                     Surface(
-                        shape = RoundedCornerShape(18.dp),
-                        color = color.copy(alpha = 0.15f),
-                        modifier = Modifier.size(52.dp)
+                        shape = RoundedCornerShape(8.dp),
+                        color = subjectColor.copy(alpha = 0.2f),
+                        border = BorderStroke(1.dp, subjectColor)
                     ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            SubjectIcon(
-                                iconName = subject.iconName,
-                                tint = color,
-                                modifier = Modifier.size(26.dp)
-                            )
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.width(14.dp))
-
-                    Column {
                         Text(
-                            text = subject.name,
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.ExtraBold,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
-                        ) {
-                            Text(
-                                text = "Tutor: Emma Jhonson",
-                                style = MaterialTheme.typography.bodySmall,
-                                fontWeight = FontWeight.Medium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
-                }
-
-                Row {
-                    IconButton(onClick = onLogTime) {
-                        Icon(
-                            imageVector = Icons.Default.AddAlarm,
-                            contentDescription = "Log Time",
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-                    }
-                    IconButton(onClick = onEdit) {
-                        Icon(
-                            imageVector = Icons.Default.Edit,
-                            contentDescription = "Edit",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            text = subject.colorHex.uppercase(),
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = subjectColor,
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                         )
                     }
                 }
-            }
 
-            Spacer(modifier = Modifier.height(14.dp))
-
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                Surface(
-                    shape = CircleShape,
-                    color = color.copy(alpha = 0.12f),
-                    contentColor = color
-                ) {
-                    Text(
-                        text = "Lesson 20",
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp)
-                    )
-                }
-                Surface(
-                    shape = CircleShape,
-                    color = MaterialTheme.colorScheme.surfaceVariant,
-                    contentColor = MaterialTheme.colorScheme.onSurfaceVariant
-                ) {
-                    Text(
-                        text = "Assignment 12",
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp)
-                    )
-                }
-            }
-
-            if (isExpanded) {
-                Spacer(modifier = Modifier.height(16.dp))
-                HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f))
-                Spacer(modifier = Modifier.height(14.dp))
+                Spacer(modifier = Modifier.height(4.dp))
 
                 Text(
-                    text = "CHAPTER CURRICULUM",
-                    style = MaterialTheme.typography.labelSmall,
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = 1.sp,
+                    text = "Weekly Goal: ${subject.targetMinutesPerWeek / 60}h (${subject.targetMinutesPerWeek} mins)",
+                    style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+            }
 
-                Spacer(modifier = Modifier.height(10.dp))
+            // Quick Actions
+            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                IconButton(onClick = onEditColor) {
+                    Icon(
+                        imageVector = Icons.Default.Palette,
+                        contentDescription = "Change Subject Color",
+                        tint = subjectColor
+                    )
+                }
 
-                val chapters = listOf(
-                    Triple("Introduction", "1 Classes • Quiz", true),
-                    Triple("Chapter 1: Foundations", "3 Classes • Quiz", true),
-                    Triple("Chapter 2: Core Theory", "5 Classes • Assignment 1", false),
-                    Triple("Chapter 3: Advanced Applications", "6 Classes • Quiz", false)
-                )
+                IconButton(onClick = onStartFocus) {
+                    Icon(
+                        imageVector = Icons.Default.Timer,
+                        contentDescription = "Start Focus Session",
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                }
 
-                chapters.forEach { (chapterTitle, subtitle, isCompleted) ->
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 6.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(10.dp)
-                        ) {
-                            Surface(
-                                shape = CircleShape,
-                                color = if (isCompleted) Color(0xFF10B981) else MaterialTheme.colorScheme.surfaceVariant,
-                                modifier = Modifier.size(24.dp)
-                            ) {
-                                Box(contentAlignment = Alignment.Center) {
-                                    Icon(
-                                        imageVector = if (isCompleted) Icons.Default.Check else Icons.Default.Circle,
-                                        contentDescription = null,
-                                        tint = if (isCompleted) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
-                                        modifier = Modifier.size(14.dp)
-                                    )
-                                }
-                            }
-
-                            Column {
-                                Text(
-                                    text = chapterTitle,
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
-                                Text(
-                                    text = subtitle,
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                        }
-
-                        if (!isCompleted) {
-                            Surface(
-                                shape = CircleShape,
-                                color = Color(0xFFEEF2FF),
-                                modifier = Modifier.height(24.dp)
-                            ) {
-                                Text(
-                                    text = "3 lefts",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 10.sp,
-                                    color = Color(0xFF4F46E5),
-                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                                )
-                            }
-                        }
-                    }
+                IconButton(onClick = onDelete) {
+                    Icon(
+                        imageVector = Icons.Default.DeleteOutline,
+                        contentDescription = "Delete Subject",
+                        tint = MaterialTheme.colorScheme.error.copy(alpha = 0.7f)
+                    )
                 }
             }
         }
     }
 }
 
-
 @Composable
-fun SubjectDialog(
-    title: String,
-    initialName: String,
-    initialCategory: String,
-    initialColorHex: Long,
-    initialTargetMins: Int,
-    initialIconName: String,
+fun SubjectEditDialog(
+    subjectToEdit: Subject?,
     onDismiss: () -> Unit,
-    onConfirm: (name: String, category: String, colorHex: Long, targetMins: Int, iconName: String) -> Unit
+    onSave: (name: String, colorHex: String, targetMins: Int) -> Unit
 ) {
-    var name by remember { mutableStateOf(initialName) }
-    var category by remember { mutableStateOf(initialCategory) }
-    var colorHex by remember { mutableStateOf(initialColorHex) }
-    var targetMinsText by remember { mutableStateOf(initialTargetMins.toString()) }
-    var iconName by remember { mutableStateOf(initialIconName) }
+    var name by remember { mutableStateOf(subjectToEdit?.name ?: "") }
+    var selectedColorHex by remember { mutableStateOf(subjectToEdit?.colorHex ?: "#2196F3") }
+    var targetHoursText by remember { mutableStateOf((subjectToEdit?.targetMinutesPerWeek?.div(60) ?: 5).toString()) }
+
+    val currentColor = try {
+        val hex = selectedColorHex.removePrefix("#")
+        val colorInt = if (hex.length == 6) ("FF$hex").toLong(16).toInt() else hex.toLong(16).toInt()
+        Color(colorInt)
+    } catch (e: Exception) {
+        Color(0xFF2196F3)
+    }
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(text = title, fontWeight = FontWeight.Bold) },
+        title = {
+            Text(
+                text = if (subjectToEdit == null) "Add New Subject" else "Edit Subject Color & Details",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold
+            )
+        },
         text = {
             Column(
-                verticalArrangement = Arrangement.spacedBy(14.dp),
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 OutlinedTextField(
                     value = name,
@@ -428,94 +285,111 @@ fun SubjectDialog(
                     modifier = Modifier.fillMaxWidth()
                 )
 
-                OutlinedTextField(
-                    value = category,
-                    onValueChange = { category = it },
-                    label = { Text("Category (e.g. STEM, Languages)") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
-                )
+                // Color Selection Section
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Assign Subject Color:",
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.Bold
+                        )
+
+                        // Live Color Preview Pill
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = currentColor,
+                            modifier = Modifier.height(28.dp)
+                        ) {
+                            Text(
+                                text = selectedColorHex.uppercase(),
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White,
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                            )
+                        }
+                    }
+
+                    // Preset Color Chips
+                    LazyRow(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        items(Subject.DEFAULT_PALETTE) { (hex, colorLabel) ->
+                            val isSelected = selectedColorHex.equals(hex, ignoreCase = true)
+                            val swatchColor = try {
+                                val cleanHex = hex.removePrefix("#")
+                                Color(("FF$cleanHex").toLong(16).toInt())
+                            } catch (e: Exception) { Color.Gray }
+
+                            Box(
+                                modifier = Modifier
+                                    .size(40.dp)
+                                    .clip(CircleShape)
+                                    .background(swatchColor)
+                                    .border(
+                                        width = if (isSelected) 3.dp else 1.dp,
+                                        color = if (isSelected) MaterialTheme.colorScheme.onSurface else Color.Transparent,
+                                        shape = CircleShape
+                                    )
+                                    .clickable { selectedColorHex = hex },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                if (isSelected) {
+                                    Icon(
+                                        imageVector = Icons.Default.Check,
+                                        contentDescription = colorLabel,
+                                        tint = Color.White,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    // Custom Hex Input
+                    OutlinedTextField(
+                        value = selectedColorHex,
+                        onValueChange = { selectedColorHex = it },
+                        label = { Text("Custom Color Hex Code (e.g. #FF5722)") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                        leadingIcon = {
+                            Box(
+                                modifier = Modifier
+                                    .size(20.dp)
+                                    .clip(CircleShape)
+                                    .background(currentColor)
+                            )
+                        }
+                    )
+                }
 
                 OutlinedTextField(
-                    value = targetMinsText,
-                    onValueChange = { targetMinsText = it.filter { c -> c.isDigit() } },
-                    label = { Text("Daily Study Target (Minutes)") },
+                    value = targetHoursText,
+                    onValueChange = { targetHoursText = it.filter { char -> char.isDigit() } },
+                    label = { Text("Weekly Goal (Hours)") },
                     singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     modifier = Modifier.fillMaxWidth()
-                )
-
-                SubjectColorPickerRow(
-                    selectedColorHex = colorHex,
-                    onColorSelected = { colorHex = it }
-                )
-
-                IconPickerRow(
-                    selectedIconName = iconName,
-                    onIconSelected = { iconName = it }
                 )
             }
         },
         confirmButton = {
             Button(
                 onClick = {
+                    val hours = targetHoursText.toIntOrNull() ?: 5
                     if (name.isNotBlank()) {
-                        val mins = targetMinsText.toIntOrNull() ?: 60
-                        onConfirm(name, category, colorHex, mins, iconName)
+                        onSave(name.trim(), selectedColorHex.trim(), hours * 60)
                     }
                 },
                 enabled = name.isNotBlank()
             ) {
-                Text("Save")
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Cancel")
-            }
-        }
-    )
-}
-
-@Composable
-fun LogTimeDialog(
-    subjectName: String,
-    onDismiss: () -> Unit,
-    onConfirm: (minutes: Int, notes: String) -> Unit
-) {
-    var minutesText by remember { mutableStateOf("30") }
-    var notes by remember { mutableStateOf("") }
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(text = "Log Study Time: $subjectName", fontWeight = FontWeight.Bold) },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                OutlinedTextField(
-                    value = minutesText,
-                    onValueChange = { minutesText = it.filter { c -> c.isDigit() } },
-                    label = { Text("Minutes Studied") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                OutlinedTextField(
-                    value = notes,
-                    onValueChange = { notes = it },
-                    label = { Text("Session Notes (Optional)") },
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
-        },
-        confirmButton = {
-            Button(
-                onClick = {
-                    val mins = minutesText.toIntOrNull() ?: 0
-                    if (mins > 0) {
-                        onConfirm(mins, notes)
-                    }
-                }
-            ) {
-                Text("Record Session")
+                Text(if (subjectToEdit == null) "Add Subject" else "Save Changes")
             }
         },
         dismissButton = {
